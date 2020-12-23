@@ -1,0 +1,46 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+Dieses Notebook dient dazu einen ersten Einblick in die vorhandenen Traingsdaten zu werfen.
+Erstelle Zusammenfassung der Daten:
+
+```{r}
+summary(training)
+```
+Plotte Anzahl der Wagen pro Hersteller:
+```{r}
+groupedByManufacturer <- training %>%
+  select(1,7)
+groupedByManufacturer <- groupedByManufacturer %>%
+  count(Make)
+
+ggplot(data = groupedByManufacturer, mapping=aes(x=Make,y=n))+
+  geom_bar(stat='identity')
+```
+-> Es gibt 4 große Marken, die den Markt dominieren.
+CHEVROLET 17248
+
+DODGE 12912
+
+FORD 11305
+
+CHRYSLER 8844
+
+PONTIAC 4258
+
+Schaue wie alt die Fahrzeuge sind:
+```{r}
+groupedByAge <- training %>%
+  select(1,6)
+groupedByAge <- groupedByAge %>%
+  count(VehicleAge)
+
+ggplot(data = groupedByAge, mapping=aes(x=VehicleAge,y=n))+
+  geom_bar(stat='identity')
+```
