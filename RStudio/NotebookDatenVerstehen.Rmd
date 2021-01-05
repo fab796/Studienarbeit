@@ -6,41 +6,38 @@ output: html_notebook
 library(dplyr)
 library(ggplot2)
 ```
-
-Dieses Notebook dient dazu einen ersten Einblick in die vorhandenen Traingsdaten zu werfen.
-Erstelle Zusammenfassung der Daten:
+Data Understanding
+Dieser Abschnitt dient dazu, die vorhandenen Daten zu verstehen und zu interpretieren.
+Zunächst wird die Summary des Trainingdatensatzes betrachtet:
 
 ```{r}
 summary(training)
 ```
-Plotte Anzahl der Wagen pro Hersteller:
+Danach wird geprüft, ob die angegebenen Datentypen auch zu den Werten der Daten passen.
 ```{r}
-groupedByManufacturer <- training %>%
-  select(1,7)
-groupedByManufacturer <- groupedByManufacturer %>%
-  count(Make)
-
-ggplot(data = groupedByManufacturer, mapping=aes(x=Make,y=n))+
-  geom_bar(stat='identity')
+head(training)
 ```
--> Es gibt 4 große Marken, die den Markt dominieren.
-CHEVROLET 17248
 
-DODGE 12912
-
-FORD 11305
-
-CHRYSLER 8844
-
-PONTIAC 4258
-
-Schaue wie alt die Fahrzeuge sind:
+Die Spalten, die den Preis enthalten, sind falsch dargestellt und müssen in "double" umgewandelt werden. Daher wird zuerst geschaut, ob nicht konvertierbare Einträge vorhanden sind:
 ```{r}
-groupedByAge <- training %>%
-  select(1,6)
-groupedByAge <- groupedByAge %>%
-  count(VehicleAge)
-
-ggplot(data = groupedByAge, mapping=aes(x=VehicleAge,y=n))+
-  geom_bar(stat='identity')
+#----------------------------Hier weiter machen
+training %>%
+  filter()
 ```
+
+
+
+
+Vermutung: Datensatz im Hinblick auf das Attribut "IsBadBuy" nicht balanciert. Überprüfe mit Hilfe eines einfachen Plots:
+```{r}
+groupedByBad <- training %>%
+  select(1,2)
+groupedByBad <- groupedByBad %>%
+  count(IsBadBuy)
+
+ggplot(data = groupedByBad, mapping=aes(x=IsBadBuy,y=n))+
+  geom_bar(stat='identity')
+head(groupedByBad)
+```
+
+

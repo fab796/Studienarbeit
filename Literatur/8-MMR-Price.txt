@@ -1,0 +1,5 @@
+MMR in the car business stands for Manheim Market Report, an indicator of wholesale prices.
+
+Manheim is a company established in 1945 as a car auction company. It has grown to a very reputable company and its MMR is a baseline tool for wholesale car price determination. They base their price calculations on over 10 million transaction over the past 13-month period to .
+
+These prices are considered some of the most accurate all around and have a 24-hour refresh frequency. The company itself notes that large volumes of data removes personal opinion and bias from price calculations with the huge amount of data being processed without any statistical interpretation.
