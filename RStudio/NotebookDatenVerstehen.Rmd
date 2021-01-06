@@ -20,17 +20,45 @@ head(training)
 
 Die Spalten, die den Preis enthalten, sind falsch dargestellt und müssen in "double" umgewandelt werden. Daher wird zuerst geschaut, ob nicht konvertierbare Einträge vorhanden sind:
 ```{r}
-#----------------------------Hier weiter machen
-training %>%
-  filter()
+
+filteredData <- training %>%
+  filter(MMRAcquisitionAuctionAveragePrice != "NULL")%>%
+  filter(MMRAcquisitionAuctionCleanPrice != "NULL")%>%
+  filter(MMRAcquisitionRetailAveragePrice != "NULL")%>%
+  filter(MMRAcquisitonRetailCleanPrice != "NULL")%>%
+  filter(MMRCurrentAuctionAveragePrice != "NULL")%>%
+  filter(MMRCurrentAuctionCleanPrice != "NULL")%>%
+  filter(MMRCurrentRetailAveragePrice != "NULL")%>%
+  filter(MMRCurrentRetailCleanPrice != "NULL")
+  
+```
+Durch diese Filterung fallen 315 Datensätze weg, was im Verhältnis zu dem großen Datensatz kaum Auswirkungen hat.
+Nun können wir die Spalten umwandeln.
+
+```{r}
+filteredData$MMRAcquisitionAuctionAveragePrice <- as.numeric(as.character(filteredData$MMRAcquisitionAuctionAveragePrice))
+filteredData$MMRAcquisitionAuctionCleanPrice <- as.numeric(as.character(filteredData$MMRAcquisitionAuctionCleanPrice))
+filteredData$MMRAcquisitionRetailAveragePrice <- as.numeric(as.character(filteredData$MMRAcquisitionRetailAveragePrice))
+filteredData$MMRAcquisitonRetailCleanPrice <- as.numeric(as.character(filteredData$MMRAcquisitonRetailCleanPrice))
+filteredData$MMRCurrentAuctionAveragePrice <- as.numeric(as.character(filteredData$MMRCurrentAuctionAveragePrice))
+filteredData$MMRCurrentAuctionCleanPrice <- as.numeric(as.character(filteredData$MMRCurrentAuctionCleanPrice))
+filteredData$MMRCurrentRetailAveragePrice <- as.numeric(as.character(filteredData$MMRCurrentRetailAveragePrice))
+filteredData$MMRCurrentRetailCleanPrice <- as.numeric(as.character(filteredData$MMRCurrentRetailCleanPrice))
+
+
 ```
 
+Nach Umwandlung erneut Summary aufrufen:
 
-
-
-Vermutung: Datensatz im Hinblick auf das Attribut "IsBadBuy" nicht balanciert. Überprüfe mit Hilfe eines einfachen Plots:
 ```{r}
-groupedByBad <- training %>%
+summary(filteredData)
+```
+Nach der Umwandlung sind die Zahlen nun richtig dargestellt.
+
+Beim Betrachten der Werte kommt folgende Vermutung: 
+Datensatz im Hinblick auf das Attribut "IsBadBuy" nicht balanciert. Überprüfe mit Hilfe eines einfachen Plots:
+```{r}
+groupedByBad <- filteredData %>%
   select(1,2)
 groupedByBad <- groupedByBad %>%
   count(IsBadBuy)
@@ -39,5 +67,34 @@ ggplot(data = groupedByBad, mapping=aes(x=IsBadBuy,y=n))+
   geom_bar(stat='identity')
 head(groupedByBad)
 ```
+
+Im Weiteren wird die Verteilung des Alters der Fahrzeuge betrachtet:
+
+```{r}
+groupedByAge <- filteredData %>%
+  select(1,6)%>%
+  count(VehicleAge)
+ggplot(data = groupedByAge, mapping=aes(x=VehicleAge,y=n))+
+  geom_bar(stat='identity')
+```
+Hierbei handelt es sich um eine nach links verlagerte Gleichverteilung. Interessanter wird hier der Anteil der Fahrzeuge sein, die als Fehlkauf markiert wurden:
+
+```{r}
+groupedByAgeAndIsBad <- filteredData %>%
+  select(1,2,6)%>%
+  group_by(IsBadBuy, VehicleAge)%>%
+  count(VehicleAge)
+
+
+ggplot(groupedByAgeAndIsBad, aes(fill=IsBadBuy, y=n, x=VehicleAge)) + 
+    geom_bar(position="dodge", stat="identity")
+
+```
+
+
+
+
+
+
 
 
