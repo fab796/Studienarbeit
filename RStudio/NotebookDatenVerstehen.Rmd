@@ -90,10 +90,81 @@ ggplot(groupedByAgeAndIsBad, aes(fill=IsBadBuy, y=n, x=VehicleAge)) +
     geom_bar(position="dodge", stat="identity")
 
 ```
+Um diesen Anstieg der "Kicks" im Alter besser darzustellen, folgt ein Graph, der das Verhältnis darstellt:
+
+```{r}
+groupedByAgeAndIsBad <- groupedByAgeAndIsBad %>%
+  group_by(VehicleAge)%>%
+  mutate(n2 = sum(n))%>%
+  group_by(VehicleAge, add = TRUE)%>%
+  mutate(percentageBadBuy=round(100*n/n2,2))%>%
+  filter(IsBadBuy == 1)
+
+ggplot(groupedByAgeAndIsBad, aes(x = VehicleAge, y = percentageBadBuy))+
+  geom_line()
+
+```
+Je älter ein Fahrzeug also ist, umso wahrscheinlicher ist, dass es ein Fehlkauf ist.
+
+Weiter wird untersucht, ob die Laufleistung im Bezug auf das Fahrzeugalter eine ähnliche Entwicklung erfährt:
+
+```{r}
+groupedByOdo <- filteredData %>%
+  select(1,2,6,15)%>%
+  group_by(IsBadBuy, VehicleAge)%>%
+  summarize(VehOdo2 = mean(VehOdo))
+ggplot(groupedByOdo, aes(x= VehicleAge, y=VehOdo2, group = IsBadBuy, color = IsBadBuy))+
+  geom_line()
 
 
+```
+In diesem Graphen wird deutlich, dass die durchschnittliche Laufleistung bei Fehlkäufen gerade bei älteren Fahrzeugen leicht höher liegt.
+
+Weiter wird der überprüft, ob gewisse Automarken einen höheren Anteil an Fehlkäufen haben als andere.
+
+```{r}
+groupedByMake <- filteredData %>%
+  select(1,2,7)%>%
+  group_by(IsBadBuy, Make)%>%
+  count(Make)%>%
+  group_by(Make)%>%
+  mutate(n2 = sum(n))%>%
+  group_by(Make, add = TRUE)%>%
+  mutate(percentageBadBuy=round(100*n/n2,2))%>%
+  filter(IsBadBuy == 1)
+
+ggplot(groupedByMake, aes(x = Make, y = percentageBadBuy))+
+  geom_bar(stat="identity")
+```
+Da Graph sehr unübersichtlich sortiere nach größtem Anteil und plotte nur die ersten 10:
+
+```{r}
+groupedByMake <- groupedByMake[with(groupedByMake, order(-percentageBadBuy)),]
+groupedByMakeSmall <- groupedByMake[1:10,]
+ggplot(groupedByMakeSmall, aes(x = reorder(Make, -percentageBadBuy), y = percentageBadBuy))+
+  geom_bar(stat="identity")
+```
+Ebenfalls werden die 10 kleinsten betrachtet:
+
+```{r}
+groupedByMake <- groupedByMake[with(groupedByMake, order(percentageBadBuy)),]
+groupedByMakeSmall <- groupedByMake[1:10,]
+ggplot(groupedByMakeSmall, aes(x = reorder(Make, percentageBadBuy), y = percentageBadBuy))+
+  geom_bar(stat="identity")
+```
+Problem bei dieser Darstellung ist, dass zum Beispiel der Hersteller Plymouth zwar einen hohen Anteil an schlechten Fahrzeugen hat, allerdings sind nur zwei Datensätze zu diesem Hersteller vorhanden, sodass diese Grafik nicht aussagekräftig genug ist. Daher müssen die absoluten Zahlen der Hersteller betrachtet werden, um solche kleinen Datensätze zu berücksichtigen.
 
 
+```{r}
+groupedByMake <- filteredData %>%
+  select(1,2,7)%>%
+  group_by(IsBadBuy, Make)%>%
+  count(Make)
+
+
+summary(groupedByMake)
+```
+#------------- Weiter gucken mit schlechter Verteilung mit Anzahl pro Marke
 
 
 
