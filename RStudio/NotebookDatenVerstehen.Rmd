@@ -53,9 +53,37 @@ Nach Umwandlung erneut Summary aufrufen:
 ```{r}
 summary(filteredData)
 ```
+Das Attribut "WheelId" beinhaltet noch 3167 NA'S. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Nach der Umwandlung sind die Zahlen nun richtig dargestellt.
 
-Beim Betrachten der Werte kommt folgende Vermutung: 
+Die numerischen Werte werden ausgewählt, um eine Korrelationsmatrix zu erstellen:
+
+```{r}
+matrixData <- filteredData %>%
+  select(IsBadBuy, VehYear, VehicleAge, WheelTypeID, VehOdo, MMRAcquisitionAuctionAveragePrice, MMRAcquisitionAuctionCleanPrice, MMRAcquisitionRetailAveragePrice, MMRAcquisitonRetailCleanPrice, MMRCurrentAuctionAveragePrice, MMRCurrentAuctionCleanPrice, MMRCurrentRetailAveragePrice, MMRCurrentRetailCleanPrice, BYRNO, VNZIP1, VehBCost, WarrantyCost)
+
+
+cor(matrixData, method ="pearson")
+```
+
+
+Beim Betrachten der Summary kommt folgende Vermutung: 
 Datensatz im Hinblick auf das Attribut "IsBadBuy" nicht balanciert. Überprüfe mit Hilfe eines einfachen Plots:
 ```{r}
 groupedByBad <- filteredData %>%
@@ -67,6 +95,7 @@ ggplot(data = groupedByBad, mapping=aes(x=IsBadBuy,y=n))+
   geom_bar(stat='identity')
 head(groupedByBad)
 ```
+
 
 Im Weiteren wird die Verteilung des Alters der Fahrzeuge betrachtet:
 
