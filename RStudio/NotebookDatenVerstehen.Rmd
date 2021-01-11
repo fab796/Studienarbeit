@@ -202,6 +202,12 @@ Das spiegelt sich auch in der Summary des Datensatzes wieder, da eine sehr hohe 
 
 
 
+```{r}
+library(FSelector)
+?information.gain()
+
+information.gain(VehYear~ VehOdo, filteredData)
+```
 
 
 
