@@ -1,0 +1,5 @@
+-> Related Work in Business Understanding
+-> Käufer IDs raus nehmen
+-> hervorheben, dass wir hier in B2B sind
+-> Definition von badBuy
+-> Literatur zu Lemon Markets heraussuchen
