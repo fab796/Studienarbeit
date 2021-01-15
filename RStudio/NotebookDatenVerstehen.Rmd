@@ -201,14 +201,53 @@ Das spiegelt sich auch in der Summary des Datensatzes wieder, da eine sehr hohe 
 
 
 
-
+Im Folgenden KAPITEL DATA PREPARATION
+Als erstes fallen die ID's heraus
 ```{r}
-library(FSelector)
-?information.gain()
+filteredData <- filteredData %>%
+  select(-RefId, -WheelTypeID, -BYRNO, -PRIMEUNIT, -AUCGUART, -VNZIP1)
+```
+Untersuche auf weitere fehlende Werte:
+```{r}
+sum(is.na(filteredData$IsBadBuy))
+sum(is.na(filteredData$PurchDate))
+sum(is.na(filteredData$Auction))
+sum(is.na(filteredData$VehYear))
+sum(is.na(filteredData$VehicleAge))
+sum(is.na(filteredData$Make))
+sum(is.na(filteredData$Model))
+sum(is.na(filteredData$Trim))
+sum(is.na(filteredData$SubModel))
+sum(is.na(filteredData$Color))
+sum(is.na(filteredData$Transmission))
+sum(is.na(filteredData$WheelType))
+sum(is.na(filteredData$VehOdo))
+sum(is.na(filteredData$Nationality))
+sum(is.na(filteredData$Size))
+sum(is.na(filteredData$TopThreeAmericanName))
+sum(is.na(filteredData$VNST))
+sum(is.na(filteredData$VehBCost))
+sum(is.na(filteredData$IsOnlineSale))
+sum(is.na(filteredData$WarrantyCost))
 
-information.gain(VehYear~ VehOdo, filteredData)
 ```
 
 
+Es fällt die Spalte TRIM auf, in der es fehlende Werte gibt. Da es sich hier um ein kategorisches Attribut handelt, kann kein Durchschnittswert eingefügt werden. Deshalb werden die Spalten mit den fehlenden Werten aus dem Datensatz entfernt.
+
+```{r}
+filteredData <- na.omit(filteredData)
+```
+Filter die als character importierten Attribute nach Einträgen "NULL"
+
+```{r}
+length(grep("NULL", filteredData))
+
+?all_vars
+
+filteredData <- filteredData %>%
+  filter_all(all_vars(. != "NULL"))
+
+```
 
 
