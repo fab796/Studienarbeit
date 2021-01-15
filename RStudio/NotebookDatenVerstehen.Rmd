@@ -5,6 +5,25 @@ output: html_notebook
 ```{r}
 library(dplyr)
 library(ggplot2)
+
+
+
+
+training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
+    col_types = cols(RefId = col_number(), 
+        VehYear = col_number(), VehicleAge = col_number(), 
+        WheelTypeID = col_number(), VehOdo = col_number(), 
+        MMRAcquisitionAuctionAveragePrice = col_number(), 
+        MMRAcquisitionAuctionCleanPrice = col_number(), 
+        MMRAcquisitionRetailAveragePrice = col_number(), 
+        MMRAcquisitonRetailCleanPrice = col_number(), 
+        MMRCurrentAuctionAveragePrice = col_number(), 
+        MMRCurrentAuctionCleanPrice = col_number(), 
+        MMRCurrentRetailAveragePrice = col_number(), 
+        MMRCurrentRetailCleanPrice = col_number(), 
+        BYRNO = col_number(), VNZIP1 = col_number(), 
+        VehBCost = col_number(), IsOnlineSale = col_number(), 
+        WarrantyCost = col_number()))
 ```
 Data Understanding
 Dieser Abschnitt dient dazu, die vorhandenen Daten zu verstehen und zu interpretieren.
@@ -238,15 +257,58 @@ Es fällt die Spalte TRIM auf, in der es fehlende Werte gibt. Da es sich hier um
 ```{r}
 filteredData <- na.omit(filteredData)
 ```
-Filter die als character importierten Attribute nach Einträgen "NULL"
+In der ursprünglichen Datei gibt es sowhl leere Fehler, als auch Fehler mit dem String "NULL". Diese müssen gefiltert werden.
+Überprüfe in welchen Attributen diese "NULL" Einträge vorhanden sind:
 
 ```{r}
-length(grep("NULL", filteredData))
+(grep("NULL", filteredData))
 
-?all_vars
+```
 
+```{r}
 filteredData <- filteredData %>%
-  filter_all(all_vars(. != "NULL"))
+  filter(SubModel != "NULL")%>%
+  filter(Color != "NULL")%>%
+  filter(Transmission != "NULL")%>%
+  filter(WheelType != "NULL")%>%
+  filter(Nationality != "NULL")%>%
+  filter(Size != "NULL")%>%
+  filter(TopThreeAmericanName != "NULL")
+```
+Filter numerische Attribute. Nehme den Durchschnitt des gesamten Attributes und füge ihn dort ein, wo Werte = 0 sind.
+
+```{r}
+#MMRAcquisitionAuctionAveragePrice
+is.na(filteredData$MMRAcquisitionAuctionAveragePrice) <- filteredData$MMRAcquisitionAuctionAveragePrice == 0
+filteredData$MMRAcquisitionAuctionAveragePrice[is.na(filteredData$MMRAcquisitionAuctionAveragePrice)]<-mean(filteredData$MMRAcquisitionAuctionAveragePrice,na.rm=TRUE)
+
+#MMRAcquisitionAuctionCleanPrice
+is.na(filteredData$MMRAcquisitionAuctionCleanPrice) <- filteredData$MMRAcquisitionAuctionCleanPrice== 0
+filteredData$MMRAcquisitionAuctionCleanPrice[is.na(filteredData$MMRAcquisitionAuctionCleanPrice)]<-mean(filteredData$MMRAcquisitionAuctionCleanPrice,na.rm=TRUE)
+
+#MMRAcquisitionRetailAveragePrice
+is.na(filteredData$MMRAcquisitionRetailAveragePrice) <- filteredData$MMRAcquisitionRetailAveragePrice== 0
+filteredData$MMRAcquisitionRetailAveragePrice[is.na(filteredData$MMRAcquisitionRetailAveragePrice)]<-mean(filteredData$MMRAcquisitionRetailAveragePrice,na.rm=TRUE)
+
+#MMRAcquisitonRetailCleanPrice
+is.na(filteredData$MMRAcquisitonRetailCleanPrice) <- filteredData$MMRAcquisitonRetailCleanPrice== 0
+filteredData$MMRAcquisitonRetailCleanPrice[is.na(filteredData$MMRAcquisitonRetailCleanPrice)]<-mean(filteredData$MMRAcquisitonRetailCleanPrice,na.rm=TRUE)
+
+#MMRCurrentAuctionAveragePrice
+is.na(filteredData$MMRCurrentAuctionAveragePrice) <- filteredData$MMRCurrentAuctionAveragePrice== 0
+filteredData$MMRCurrentAuctionAveragePrice[is.na(filteredData$MMRCurrentAuctionAveragePrice)]<-mean(filteredData$MMRCurrentAuctionAveragePrice,na.rm=TRUE)
+
+#MMRCurrentAuctionCleanPrice
+is.na(filteredData$MMRCurrentAuctionCleanPrice) <- filteredData$MMRCurrentAuctionCleanPrice== 0
+filteredData$MMRCurrentAuctionCleanPrice[is.na(filteredData$MMRCurrentAuctionCleanPrice)]<-mean(filteredData$MMRCurrentAuctionCleanPrice,na.rm=TRUE)
+
+#MMRCurrentRetailAveragePrice
+is.na(filteredData$MMRCurrentRetailAveragePrice) <- filteredData$MMRCurrentRetailAveragePrice== 0
+filteredData$MMRCurrentRetailAveragePrice[is.na(filteredData$MMRCurrentRetailAveragePrice)]<-mean(filteredData$MMRCurrentRetailAveragePrice,na.rm=TRUE)
+
+#MMRCurrentRetailCleanPrice
+is.na(filteredData$MMRCurrentRetailCleanPrice) <- filteredData$MMRCurrentRetailCleanPrice== 0
+filteredData$MMRCurrentRetailCleanPrice[is.na(filteredData$MMRCurrentRetailCleanPrice)]<-mean(filteredData$MMRCurrentRetailCleanPrice,na.rm=TRUE)
 
 ```
 
