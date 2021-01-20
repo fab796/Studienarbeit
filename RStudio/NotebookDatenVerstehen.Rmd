@@ -5,7 +5,7 @@ output: html_notebook
 ```{r}
 library(dplyr)
 library(ggplot2)
-
+library(readr)
 
 
 
@@ -312,4 +312,42 @@ filteredData$MMRCurrentRetailCleanPrice[is.na(filteredData$MMRCurrentRetailClean
 
 ```
 
+Im Attribut Submodel sind noch weitere Informationen, die als eigenes Attribut herausgestellt werden müssen.
+
+Viele fangen mit "2D" oder "4D" an, was die Anzahl der Türen beschreibt. Dies muss in eine eigene Spalte.
+```{r}
+
+filteredData <- filteredData %>%
+  mutate(Doors = case_when(grepl("2D",filteredData$SubModel)~"2D",
+                           grepl("4D",filteredData$SubModel)~"4D"))
+
+filteredData$SubModel <- gsub( "2D ", "", filteredData$SubModel)
+filteredData$SubModel <- gsub( "4D ", "", filteredData$SubModel)
+
+```
+
+
+Weiter enthält das Attribut "Model" noch Informationen über Zwei- bzw. Vierradantrieb, sowie über die Anzahl der Zylinder.
+```{r}
+filteredData <- filteredData %>%
+  mutate(Cylinder = case_when(grepl("2C",filteredData$Model)~"2C",
+                           grepl("3C",filteredData$Model)~"3C",
+                           grepl("4C",filteredData$Model)~"4C",
+                           grepl("5C",filteredData$Model)~"5C",
+                           grepl("6C",filteredData$Model)~"6C",
+                           grepl("V6",filteredData$Model)~"V6",
+                           grepl("V8",filteredData$Model)~"V8",
+                           ))
+
+filteredData$Model <- gsub( "2C", "", filteredData$SubModel)
+filteredData$Model <- gsub( "3C", "", filteredData$SubModel)
+filteredData$Model <- gsub( "4C", "", filteredData$SubModel)
+filteredData$Model <- gsub( "5C", "", filteredData$SubModel)
+filteredData$Model <- gsub( "6C", "", filteredData$SubModel)
+filteredData$Model <- gsub( "V6", "", filteredData$SubModel)
+filteredData$Model <- gsub( "V8", "", filteredData$SubModel)
+
+```
+
+Filtere 3.7L mit Regex
 
