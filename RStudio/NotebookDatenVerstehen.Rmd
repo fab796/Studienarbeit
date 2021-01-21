@@ -7,6 +7,7 @@ library(dplyr)
 library(ggplot2)
 library(readr)
 library(stringr)
+library(ROSE)
 
 
 training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
@@ -371,6 +372,32 @@ filteredData$Model <- str_squish(filteredData$Model)
 filteredData$SubModel <- str_squish(filteredData$SubModel)
 
 ```
+
+
+Führe Up- / Downsampling durch
+
+```{r}
+filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "over",N = 140000)
+
+balanced <- table(filteredDataBalanced$data$IsBadBuy)
+
+balanced
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
