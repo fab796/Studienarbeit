@@ -8,6 +8,7 @@ library(ggplot2)
 library(readr)
 library(stringr)
 library(ROSE)
+library(ranger)
 
 
 training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
@@ -74,17 +75,6 @@ Nach Umwandlung erneut Summary aufrufen:
 summary(filteredData)
 ```
 Das Attribut "WheelId" beinhaltet noch 3167 NA'S. 
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -377,16 +367,134 @@ filteredData$SubModel <- str_squish(filteredData$SubModel)
 Führe Up- / Downsampling durch
 
 ```{r}
-filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "over",N = 140000)
 
-balanced <- table(filteredDataBalanced$data$IsBadBuy)
 
-balanced
+
+
+
+filteredData <- filteredData %>%
+  mutate(
+    IsBadBuy = factor(IsBadBuy),
+    Auction = factor(Auction),
+    Make = factor(Make),
+    Model = factor(Model),
+    Trim = factor(Trim),
+    SubModel = factor(SubModel),
+    Color = factor(Color),
+    Transmission = factor(Transmission),
+    WheelType = factor(WheelType),
+    Nationality = factor(Nationality),
+    Size = factor(Size),
+    TopThreeAmericanName = factor(TopThreeAmericanName),
+    VNST = factor(VNST),
+    IsOnlineSale = factor(IsOnlineSale),
+    WheelDrive = factor(WheelDrive),
+    Doors = factor(Doors),
+    Liter = factor(Liter),
+    Cylinder = factor(Cylinder)
+  )
+
+filteredDataSelected <- filteredData %>%
+  select(-Cylinder, -WheelDrive, -Liter, -Doors)
+
+
+
+table(filteredData$IsBadBuy)
+
+summary(filteredData)
+
+
+filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "both", p = 0.5)$data
+
+balanced <- table(filteredDataBalanced$IsBadBuy)
+
+modelData <- filteredDataBalanced
+
+```
+PREPARE TEST DATA
+
+```{r}
+testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv", 
+    col_types = cols(RefId = col_number(), 
+        VehYear = col_number(), VehicleAge = col_number(), 
+        WheelTypeID = col_number(), VehOdo = col_number(), 
+        MMRAcquisitionAuctionAveragePrice = col_number(), 
+        MMRAcquisitionAuctionCleanPrice = col_number(), 
+        MMRAcquisitionRetailAveragePrice = col_number(), 
+        MMRAcquisitonRetailCleanPrice = col_number(), 
+        MMRCurrentAuctionAveragePrice = col_number(), 
+        MMRCurrentAuctionCleanPrice = col_number(), 
+        MMRCurrentRetailAveragePrice = col_number(), 
+        MMRCurrentRetailCleanPrice = col_number(), 
+        BYRNO = col_number(), VNZIP1 = col_number(), 
+        VehBCost = col_number(), IsOnlineSale = col_number(), 
+        WarrantyCost = col_number()))
+
+
+testData <- testData %>%
+  filter(SubModel != "NULL")%>%
+  filter(Color != "NULL")%>%
+  filter(Transmission != "NULL")%>%
+  filter(WheelType != "NULL")%>%
+  filter(Nationality != "NULL")%>%
+  filter(Size != "NULL")%>%
+  filter(TopThreeAmericanName != "NULL")
+
+testData$MMRAcquisitionAuctionAveragePrice <- as.numeric(as.character(testData$MMRAcquisitionAuctionAveragePrice))
+testData$MMRAcquisitionAuctionCleanPrice <- as.numeric(as.character(testData$MMRAcquisitionAuctionCleanPrice))
+testData$MMRAcquisitionRetailAveragePrice <- as.numeric(as.character(testData$MMRAcquisitionRetailAveragePrice))
+testData$MMRAcquisitonRetailCleanPrice <- as.numeric(as.character(testData$MMRAcquisitonRetailCleanPrice))
+testData$MMRCurrentAuctionAveragePrice <- as.numeric(as.character(testData$MMRCurrentAuctionAveragePrice))
+testData$MMRCurrentAuctionCleanPrice <- as.numeric(as.character(testData$MMRCurrentAuctionCleanPrice))
+testData$MMRCurrentRetailAveragePrice <- as.numeric(as.character(testData$MMRCurrentRetailAveragePrice))
+testData$MMRCurrentRetailCleanPrice <- as.numeric(as.character(testData$MMRCurrentRetailCleanPrice))
+
+
+testData <- testData %>%
+  select(-RefId, -WheelTypeID, -BYRNO, -PRIMEUNIT, -AUCGUART, -VNZIP1)
+
+na.omit(testData)
+
+
+testData <- testData %>%
+  filter(SubModel != "NULL")%>%
+  filter(Color != "NULL")%>%
+  filter(Transmission != "NULL")%>%
+  filter(WheelType != "NULL")%>%
+  filter(Nationality != "NULL")%>%
+  filter(Size != "NULL")%>%
+  filter(TopThreeAmericanName != "NULL")
+
+
+(grep("NULL", testData))
 ```
 
 
 
+MODELLING
 
+
+
+```{r}
+rf_01 <- ranger(IsBadBuy ~ ., data = modelData, importance = "permutation", probability = TRUE, seed=42)
+print(rf_01)
+
+```
+Mache Vorhersagen
+
+```{r}
+predictions_validation_01 <- predict(rf_01, data = testData, type = "response")
+head(predictions_validation_01)
+
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
+
+data_validation_w_preds_01 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+
+1-ce(actual = data_validation_w_preds_01$IsBadBuy, predicted = data_validation_w_preds_01$predictions_validation_binary_01)
+
+CrossTable(data_validation_w_preds_01$Decision, data_validation_w_preds_01$predictions_validation_binary_01, 
+           prop.r=FALSE, prop.c=FALSE, prop.t=TRUE, prop.chisq=FALSE)
+```
 
 
 
