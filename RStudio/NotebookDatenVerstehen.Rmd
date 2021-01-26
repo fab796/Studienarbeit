@@ -463,7 +463,16 @@ testData <- testData %>%
   filter(WheelType != "NULL")%>%
   filter(Nationality != "NULL")%>%
   filter(Size != "NULL")%>%
-  filter(TopThreeAmericanName != "NULL")
+  filter(Trim != "NULL")%>%
+  filter(TopThreeAmericanName != "NULL")%>%
+  filter(MMRAcquisitionAuctionAveragePrice > 0)%>%
+  filter(MMRAcquisitionAuctionCleanPrice > 0)%>%
+  filter(MMRAcquisitionRetailAveragePrice > 0)%>%
+  filter(MMRAcquisitonRetailCleanPrice > 0)%>%
+  filter(MMRCurrentAuctionAveragePrice > 0)%>%
+  filter(MMRCurrentAuctionCleanPrice > 0)%>%
+  filter(MMRCurrentRetailAveragePrice > 0)%>%
+  filter(MMRCurrentRetailCleanPrice > 0)
 
 
 (grep("NULL", testData))
@@ -476,25 +485,38 @@ MODELLING
 
 
 ```{r}
-rf_01 <- ranger(IsBadBuy ~ ., data = modelData, importance = "permutation", probability = TRUE, seed=42)
+rf_01 <- ranger(IsBadBuy ~ ., data = modelData, importance = "impurity", probability = TRUE, seed=42, num.trees = 1000)
 print(rf_01)
 
 ```
 Mache Vorhersagen
 
 ```{r}
-predictions_validation_01 <- predict(rf_01, data = testData, type = "response")
+predictions_validation_01 <- predict(rf_01, data = modelData, type = "response")$predictions[,2]
 head(predictions_validation_01)
 
 predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
 
-data_validation_w_preds_01 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+data_validation_w_preds_01 <- cbind(modelData, predictions_validation_01, predictions_validation_binary_01)
+
+table(data_validation_w_preds_01$predictions_validation_binary_01)
+library(Metrics)
+
+1-ce(actual = data_validation_w_preds_01$IsBadBuy, predicted = data_validation_w_preds_01$predictions_validation_binary_01)
+```
+
+
+Pass an, sodass Trainingsdaten auch gesplittet werden und hier evaluiert werden können
+
+library(Metrics)
 
 1-ce(actual = data_validation_w_preds_01$IsBadBuy, predicted = data_validation_w_preds_01$predictions_validation_binary_01)
 
 CrossTable(data_validation_w_preds_01$Decision, data_validation_w_preds_01$predictions_validation_binary_01, 
            prop.r=FALSE, prop.c=FALSE, prop.t=TRUE, prop.chisq=FALSE)
-```
+           
+           
+
 
 
 
