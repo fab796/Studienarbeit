@@ -395,7 +395,7 @@ filteredData <- filteredData %>%
   )
 
 filteredDataSelected <- filteredData %>%
-  select(-Cylinder, -WheelDrive, -Liter, -Doors)
+  select(-PurchDate, -Cylinder, -WheelDrive, -Liter, -Doors)
 
 
 
@@ -404,13 +404,28 @@ table(filteredData$IsBadBuy)
 summary(filteredData)
 
 
-filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "both", p = 0.5)$data
+filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "under", p = 0.5)$data
 
 balanced <- table(filteredDataBalanced$IsBadBuy)
 
 modelData <- filteredDataBalanced
 
 ```
+Make Ranger Tuning Stuff
+```{r}
+library(tuneRanger)
+modelData.task = makeClassifTask(data = modelData, target = "IsBadBuy")
+estimateTimeTuneRanger(modelData.task)
+
+res = tuneRanger(modelData.task,
+                 measure = list(auc),
+                 tune.parameters = c("mtry", "min.node.size", "max.depth"),
+                 num.trees = 1000
+                 )
+```
+
+
+
 PREPARE TEST DATA
 
 ```{r}
@@ -471,6 +486,49 @@ testData$MMRCurrentRetailAveragePrice[is.na(testData$MMRCurrentRetailAveragePric
 testData$MMRCurrentRetailCleanPrice[is.na(testData$MMRCurrentRetailCleanPrice)] <- 0
 
 
+#PREPARE LIKE TRAINING DATA
+
+testData <- testData %>%
+  mutate(Doors = str_extract(SubModel, "[0-9]+D"))
+
+testData$SubModel <- gsub( "[0-9]+D", "", testData$SubModel)
+
+testData <- testData %>%
+  mutate(Cylinder = str_extract(Model, c("[0-9]+C","V+[0-9]")))
+
+testData$Model <- gsub( "[0-9]+\\C", "", testData$Model)
+testData$Model <- gsub( "V+[0-9]", "", testData$Model)
+
+
+
+testData <- testData %>%
+  mutate(Liter = str_extract(SubModel, "[0-9]+\\.[0-9]+L"))%>%
+  mutate(Liter2 = str_extract(Model, "[0-9]+\\.[0-9]+L"))
+
+testData$Liter <- ifelse(is.na(testData$Liter), testData$Liter2, testData$Liter)
+
+testData <- testData %>%
+  select(-Liter2)
+
+
+testData$SubModel <- gsub( "[0-9]+\\.[0-9]+L", "", testData$SubModel)
+testData$Model <- gsub( "[0-9]+\\.[0-9]+L", "", testData$Model)
+
+
+testData <- testData %>%
+  mutate(WheelDrive = str_extract(Model, "([2-4]|F|A)+WD"))
+
+testData$Model <- gsub( "([2-4]|F)+WD", "", testData$Model)
+
+testData$Model <- str_squish(testData$Model)
+
+testData$SubModel <- str_squish(testData$SubModel)
+
+
+
+
+
+
 
 
 nrow(testData)
@@ -485,7 +543,7 @@ Passe die Trainingsdaten an, sodass ein 80 - 20 Split entsteht
 
 ```{r}
 library(caret)
-training_rows <- createDataPartition(y=modelData$IsBadBuy, p=0.5, list=FALSE)
+training_rows <- createDataPartition(y=modelData$IsBadBuy, p=0.8, list=FALSE)
 data_training <- slice(modelData, training_rows)
 data_validation <- slice(modelData, -training_rows)
 ```
@@ -497,8 +555,9 @@ MODELLING
 
 
 ```{r}
-rf_01 <- ranger(IsBadBuy ~ ., data = data_training, importance = "impurity", probability = TRUE, mtry = 20, seed=42, num.trees = 2000)
+rf_01 <- ranger(IsBadBuy ~ ., data = data_training, importance = "impurity", probability = TRUE, seed=42, num.trees = 750)
 print(rf_01)
+importance(rf_01)
 
 ```
 Mache Vorhersagen
