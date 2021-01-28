@@ -404,24 +404,45 @@ table(filteredData$IsBadBuy)
 summary(filteredData)
 
 
-filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "under", p = 0.5)$data
+filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "both", N =20000)$data
 
 balanced <- table(filteredDataBalanced$IsBadBuy)
 
 modelData <- filteredDataBalanced
 
+ 
+
 ```
+
+One Hot Encoding
+----------- HJier weiter machen
+```{r}
+#library(mltools)
+#library(data.table)
+
+
+#modelData <- one_hot(as.data.table(modelData))
+```
+
+
+
+
 Make Ranger Tuning Stuff
 ```{r}
 library(tuneRanger)
-modelData.task = makeClassifTask(data = modelData, target = "IsBadBuy")
-estimateTimeTuneRanger(modelData.task)
 
-res = tuneRanger(modelData.task,
-                 measure = list(auc),
-                 tune.parameters = c("mtry", "min.node.size", "max.depth"),
-                 num.trees = 1000
-                 )
+#tuneData <- modelData[sample(nrow(modelData), 500),]
+
+#tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+
+
+#estimateTimeTuneRanger(tuneData.task)
+
+#res = tuneRanger(tuneData.task,
+#                 measure = list(auc),
+#                 tune.parameters = c("mtry", "min.node.size"),
+#                 num.trees = 1000
+#                 )
 ```
 
 
@@ -555,7 +576,7 @@ MODELLING
 
 
 ```{r}
-rf_01 <- ranger(IsBadBuy ~ ., data = data_training, importance = "impurity", probability = TRUE, seed=42, num.trees = 750)
+rf_01 <- ranger(IsBadBuy ~ ., data = data_training, importance = "impurity", probability = TRUE, seed=42, num.trees = 1000, min.node.size = 87, mtry = 12)
 print(rf_01)
 importance(rf_01)
 
@@ -566,7 +587,7 @@ Mache Vorhersagen
 
 predictions_validation_01 <- predict(rf_01, data = data_validation, type = "response")$predictions[,2]
 head(predictions_validation_01)
-predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.6, "1" ,"0")
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5, "1" ,"0")
 
 data_validation_w_preds_01 <- cbind(data_validation, predictions_validation_01, predictions_validation_binary_01)
 #1-ce(actual = data_validation_w_preds_01$IsBadBuy, predicted = data_validation_w_preds_01$predictions_validation_binary_01)
@@ -604,7 +625,7 @@ PREDICT ON TEST DATA
 ```{r}
 predictions_validation_01 <- predict(rf_01, data = testData, type = "response")$predictions[,2]
 head(predictions_validation_01)
-predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.6,"1","0")
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
 
 data_validation_w_preds_01 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
 ```
