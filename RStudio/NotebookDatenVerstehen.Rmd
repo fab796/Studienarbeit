@@ -11,7 +11,7 @@ library(ROSE)
 library(ranger)
 
 
-training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
+training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv", 
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), VehicleAge = col_number(), 
         WheelTypeID = col_number(), VehOdo = col_number(), 
@@ -440,7 +440,7 @@ res = tuneRanger(tuneData.task,
 PREPARE TEST DATA
 
 ```{r}
-testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv", 
+testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), VehicleAge = col_number(), 
         WheelTypeID = col_number(), VehOdo = col_number(), 
@@ -566,9 +566,9 @@ MODELLING
 
 
 ```{r}
-rf_01 <- ranger(IsBadBuy ~ ., data = data_training, importance = "impurity", probability = TRUE, seed=42, num.trees = 1000, min.node.size = 87, mtry = 12)
-print(rf_01)
-importance(rf_01)
+#rf_01 <- ranger(IsBadBuy ~ ., data = data_training, importance = "impurity", probability = TRUE, seed=42, num.trees #= 1000, min.node.size = 87, mtry = 12)
+#print(rf_01)
+#importance(rf_01)
 
 ```
 Mache Vorhersagen
