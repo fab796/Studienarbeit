@@ -404,7 +404,7 @@ table(filteredData$IsBadBuy)
 summary(filteredData)
 
 
-filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "both", N =20000)$data
+filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "under", p = 0.5)$data
 
 balanced <- table(filteredDataBalanced$IsBadBuy)
 
@@ -421,12 +421,12 @@ Make Ranger Tuning Stuff
 ```{r}
 library(tuneRanger)
 
-tuneData <- modelData[sample(nrow(modelData), 5000),]
+tuneData <- modelData
 
 tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
 
 
-estimateTimeTuneRanger(tuneData.task)
+#estimateTimeTuneRanger(tuneData.task)
 
 res = tuneRanger(tuneData.task,
                  measure = list(auc),
@@ -613,7 +613,7 @@ anaData <- anaData %>%
 PREDICT ON TEST DATA
 
 ```{r}
-predictions_validation_01 <- predict(rf_01, data = testData, type = "response")$predictions[,2]
+predictions_validation_01 <- predict(res$model$learner.model, data = testData, type = "response")$predictions[,2]
 head(predictions_validation_01)
 predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
 
