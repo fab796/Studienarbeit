@@ -11,7 +11,8 @@ library(ROSE)
 library(ranger)
 
 
-training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv", 
+#training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv",
+training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), VehicleAge = col_number(), 
         WheelTypeID = col_number(), VehOdo = col_number(), 
@@ -419,20 +420,20 @@ modelData <- filteredDataBalanced
 
 Make Ranger Tuning Stuff
 ```{r}
-library(tuneRanger)
+#library(tuneRanger)
 
-tuneData <- modelData
+#tuneData <- modelData
 
-tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+#tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
 
 
 #estimateTimeTuneRanger(tuneData.task)
 
-res = tuneRanger(tuneData.task,
-                 measure = list(auc),
-                 tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
-                 num.trees = 1000
-                 )
+#res = tuneRanger(tuneData.task,
+#                 measure = list(auc),
+#                 tune.parameters = c("num.trees", mtry", "min.node.size", "sample.fraction", "max.depth", "num.random.splits"),
+#                 num.trees = 1000
+#                 )
 ```
 
 
@@ -440,7 +441,10 @@ res = tuneRanger(tuneData.task,
 PREPARE TEST DATA
 
 ```{r}
-testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
+#testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
+testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
+
+
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), VehicleAge = col_number(), 
         WheelTypeID = col_number(), VehOdo = col_number(), 
@@ -566,16 +570,23 @@ MODELLING
 
 
 ```{r}
-#rf_01 <- ranger(IsBadBuy ~ ., data = data_training, importance = "impurity", probability = TRUE, seed=42, num.trees #= 1000, min.node.size = 87, mtry = 12)
-#print(rf_01)
-#importance(rf_01)
+rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
+                importance = "permutation", 
+                probability = TRUE, 
+                sample.fraction = 1, 
+                seed=91, 
+                splitrule = "gini",
+                scale.permutation.importance = TRUE,
+                num.trees = 1000)
+print(rf_01)
+importance(rf_01)
 
 ```
 Mache Vorhersagen
 
 ```{r}
 
-predictions_validation_01 <- predict(res$model$learner.model, data = data_validation, type = "response")$predictions[,2]
+predictions_validation_01 <- predict(rf_01, data = data_validation, type = "response")$predictions[,2]
 head(predictions_validation_01)
 predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5, "1" ,"0")
 
@@ -613,7 +624,7 @@ anaData <- anaData %>%
 PREDICT ON TEST DATA
 
 ```{r}
-predictions_validation_01 <- predict(res$model$learner.model, data = testData, type = "response")$predictions[,2]
+predictions_validation_01 <- predict(rf_01, data = testData, type = "response")$predictions[,2]
 head(predictions_validation_01)
 predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
 
