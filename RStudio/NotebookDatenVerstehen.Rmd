@@ -267,7 +267,7 @@ filteredData <- filteredData %>%
   filter(Size != "NULL")%>%
   filter(TopThreeAmericanName != "NULL")
 ```
-Filter numerische Attribute. Nehme den Durchschnitt des gesamten Attributes und füge ihn dort ein, wo Werte = 0 sind.
+Filter numerische Attribute. Nehme den Durchschnitt des gesamten Attributes und füge ihn dort ein, wo Werte NA sind.
 
 ```{r}
 #MMRAcquisitionAuctionAveragePrice
@@ -364,19 +364,27 @@ filteredData$SubModel <- str_squish(filteredData$SubModel)
 
 ```
 
+Bereinige "NA" Werte:
+```{r}
+filteredData$Cylinder[is.na(filteredData$Cylinder)] <- "UNKNOWN"
+filteredData$Doors[is.na(filteredData$Doors)] <- "UNKNOWN"
+filteredData$Liter[is.na(filteredData$Liter)] <- "UNKNOWN"
+filteredData$WheelDrive[is.na(filteredData$WheelDrive)] <- "UNKNOWN"
+
+summary(filteredData)
+```
+
 
 Führe Up- / Downsampling durch
 
 ```{r}
 
 
-
-
-
 filteredData <- filteredData %>%
   mutate(
     IsBadBuy = factor(IsBadBuy),
     Auction = factor(Auction),
+    PurchDate = factor(PurchDate),
     Make = factor(Make),
     Model = factor(Model),
     Trim = factor(Trim),
@@ -394,9 +402,6 @@ filteredData <- filteredData %>%
     Liter = factor(Liter),
     Cylinder = factor(Cylinder)
   )
-
-filteredDataSelected <- filteredData %>%
-  select(-PurchDate, -Cylinder, -WheelDrive, -Liter, -Doors)
 
 
 
@@ -420,20 +425,20 @@ modelData <- filteredDataBalanced
 
 Make Ranger Tuning Stuff
 ```{r}
-#library(tuneRanger)
+library(tuneRanger)
 
-#tuneData <- modelData
+tuneData <- modelData
 
-#tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
 
 
-#estimateTimeTuneRanger(tuneData.task)
+estimateTimeTuneRanger(tuneData.task)
 
-#res = tuneRanger(tuneData.task,
-#                 measure = list(auc),
-#                 tune.parameters = c("num.trees", mtry", "min.node.size", "sample.fraction", "max.depth", "num.random.splits"),
-#                 num.trees = 1000
-#                 )
+res = tuneRanger(tuneData.task,
+                 measure = list(auc),
+                 tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
+                 num.trees = 100
+                 )
 ```
 
 
@@ -443,11 +448,11 @@ PREPARE TEST DATA
 ```{r}
 #testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
 testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
-
-
     col_types = cols(RefId = col_number(), 
-        VehYear = col_number(), VehicleAge = col_number(), 
-        WheelTypeID = col_number(), VehOdo = col_number(), 
+        VehYear = col_number(), 
+        VehicleAge = col_number(), 
+        WheelTypeID = col_number(), 
+        VehOdo = col_number(), 
         MMRAcquisitionAuctionAveragePrice = col_number(), 
         MMRAcquisitionAuctionCleanPrice = col_number(), 
         MMRAcquisitionRetailAveragePrice = col_number(), 
@@ -456,8 +461,10 @@ testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/t
         MMRCurrentAuctionCleanPrice = col_number(), 
         MMRCurrentRetailAveragePrice = col_number(), 
         MMRCurrentRetailCleanPrice = col_number(), 
-        BYRNO = col_number(), VNZIP1 = col_number(), 
-        VehBCost = col_number(), IsOnlineSale = col_number(), 
+        BYRNO = col_number(), 
+        VNZIP1 = col_number(), 
+        VehBCost = col_number(), 
+        IsOnlineSale = col_number(), 
         WarrantyCost = col_number()))
 
 nrow(testData)
@@ -540,6 +547,37 @@ testData$Model <- str_squish(testData$Model)
 testData$SubModel <- str_squish(testData$SubModel)
 
 
+testData$Cylinder[is.na(testData$Cylinder)] <- "UNKNOWN"
+testData$Doors[is.na(testData$Doors)] <- "UNKNOWN"
+testData$Liter[is.na(testData$Liter)] <- "UNKNOWN"
+testData$WheelDrive[is.na(testData$WheelDrive)] <- "UNKNOWN"
+
+
+
+
+
+testData <- testData %>%
+  mutate(
+    Auction = factor(Auction),
+    PurchDate = factor(PurchDate),
+    Make = factor(Make),
+    Model = factor(Model),
+    Trim = factor(Trim),
+    SubModel = factor(SubModel),
+    Color = factor(Color),
+    Transmission = factor(Transmission),
+    WheelType = factor(WheelType),
+    Nationality = factor(Nationality),
+    Size = factor(Size),
+    TopThreeAmericanName = factor(TopThreeAmericanName),
+    VNST = factor(VNST),
+    IsOnlineSale = factor(IsOnlineSale),
+    WheelDrive = factor(WheelDrive),
+    Doors = factor(Doors),
+    Liter = factor(Liter),
+    Cylinder = factor(Cylinder)
+  )
+
 
 
 
@@ -550,7 +588,7 @@ nrow(testData)
 testData <- testData %>%
   select(-WheelTypeID, -BYRNO, -PRIMEUNIT, -AUCGUART, -VNZIP1)
 
-na.omit(testData)
+
 nrow(testData)
 
 ```
@@ -573,8 +611,10 @@ MODELLING
 rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
                 importance = "permutation", 
                 probability = TRUE, 
-                sample.fraction = 1, 
+                sample.fraction = 0.4174454, 
                 seed=91, 
+                mtry = 10,
+                min.node.size = 83,
                 splitrule = "gini",
                 scale.permutation.importance = TRUE,
                 num.trees = 1000)
