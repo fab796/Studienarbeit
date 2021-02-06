@@ -410,7 +410,7 @@ table(filteredData$IsBadBuy)
 summary(filteredData)
 
 
-filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "under", p = 0.5)$data
+filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "both", N = 12000, p = 0.5)$data
 
 balanced <- table(filteredDataBalanced$IsBadBuy)
 
@@ -611,15 +611,13 @@ MODELLING
 rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
                 importance = "permutation", 
                 probability = TRUE, 
-                sample.fraction = 0.4174454, 
-                seed=91, 
-                mtry = 10,
-                min.node.size = 83,
                 splitrule = "gini",
                 scale.permutation.importance = TRUE,
                 num.trees = 1000)
 print(rf_01)
 importance(rf_01)
+
+saveRDS(rf_01, "rf01Model.rds")
 
 ```
 Mache Vorhersagen
@@ -687,7 +685,30 @@ write.csv(submission,"submission.csv", row.names = FALSE)
 ```
 
 
+```{r}
+library(shiny)
+```
 
+
+```{r, echo=FALSE}
+shinyApp(
+
+  ui = fluidPage(
+    selectInput("region", "Region:",
+                choices = colnames(WorldPhones)),
+    plotOutput("phonePlot")
+  ),
+
+  server = function(input, output) {
+    output$phonePlot = renderPlot({
+      barplot(WorldPhones[,input$region]*1000,
+              ylab = "Number of Telephones", xlab = "Year")
+    })
+  },
+
+  options = list(height = 500)
+)
+```
 
 
 
