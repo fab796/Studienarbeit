@@ -693,9 +693,122 @@ write.csv(submission,"submission.csv", row.names = FALSE)
 ```
 
 
+Lade Model
+```{r}
+
+```
 
 
 
+```{r, echo=off}
+library(shiny)
 
+library(ranger)
+
+shinyApp(
+
+  ui = fluidPage(
+    
+    fluidRow(
+      column(8,
+        titlePanel("Lemon Prediction"),
+        textInput("Auction", "Auction:"),
+        textInput("Make", "Make:"),
+        textInput("Model", "Model:"),
+        textInput("SubModel", "SubModel:"),
+        textInput("Color", "Color:"),
+        textInput("Trim", "Trim:"),
+        textInput("WheelType", "WheelType:"),
+        textInput("Nationality", "Nationality:"),
+        textInput("Size", "Size:"),
+        textInput("TopThreeAmericanName", "TopThreeAmericanName:"),
+        textInput("VNST", "VNST:"),
+        dateInput("PurchDate", "PurchDate:"),
+        textInput("Cylinder", "Cylinder:"),
+        textInput("Transmission", "Transmission:"),
+        selectInput("Doors", "Doors:", c("2D", "4D")),
+        selectInput("WheelDrive", "WheelDrive:", c("2WD", "4WD", "FWD", "RWD")),
+        selectInput("IsOnlineSale", "IsOnlineSale:", c(0,1)),
+        numericInput("Liter", "Liter:", value = 0),
+        numericInput("VehOdo", "VehOdo:", value = 0),
+        numericInput("VehCost", "VehCost:", value = 0),
+        numericInput("VehYear", "VehYear:", value = 0),
+        numericInput("VehAge", "VehAge:", value = 0),
+        numericInput("VehBCost", "VehBCost:", value = 0),
+        numericInput("WarrantyCost", "WarrantyCost:", value = 0),
+        
+        actionButton("Berechnen", "Berechnen")
+      ),
+      column(4,
+             textOutput("sult"),
+             dataTableOutput("result"),
+             textOutput("pred")
+             )
+    )
+    
+  ),
+
+  server = function(input, output) {
+    output$sult <- renderText({"hallooo"})
+    myModel <- readRDS("trainedModel.rds")
+    library(ranger)
+  
+    observeEvent(input$Berechnen, {
+      #Lade Eingabe in DataFrame
+      df <- data.frame(Auction = input$Auction,
+                       Make = input$Make,
+                       Model = input$Model,
+                       SubModel = input$SubModel,
+                       Color = input$Color,
+                       Trim = input$Trim,
+                       WheelType = input$WheelType,
+                       Nationality = input$Nationality,
+                       Size = input$Size,
+                       TopThreeAmericanName = input$TopThreeAmericanName,
+                       VNST = input$VNST,
+                       PurchDate = input$PurchDate,
+                       Cylinder = input$Cylinder,
+                       Transmission = input$Transmission,
+                       Doors = input$Doors,
+                       WheelDrive = input$WheelDrive,
+                       Liter = input$Liter,
+                       VehOdo = input$VehOdo,
+                       VehCost = input$VehCost,
+                       VehYear = input$VehYear,
+                       VehicleAge = input$VehAge,
+                       VehBCost = input$VehBCost,
+                       IsOnlineSale = input$IsOnlineSale,
+                       WarrantyCost = input$WarrantyCost,
+                       
+                       
+                       MMRAcquisitionAuctionAveragePrice = 0, 
+                        MMRAcquisitionAuctionCleanPrice = 0, 
+                        MMRAcquisitionRetailAveragePrice = 0, 
+                        MMRAcquisitonRetailCleanPrice = 0, 
+                        MMRCurrentAuctionAveragePrice = 0, 
+                        MMRCurrentAuctionCleanPrice = 0, 
+                        MMRCurrentRetailAveragePrice = 0, 
+                        MMRCurrentRetailCleanPrice = 0 
+                       
+                       
+                       )
+      
+      output$result <- renderDataTable(df)
+      
+              
+        predictions_validation_01 <- predict(myModel, data = df, type = "response")$predictions[,2]
+        predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
+        data_validation_w_preds_01 <- cbind(df, predictions_validation_01, predictions_validation_binary_01)
+      
+      output$pred <- renderText({
+
+          data_validation_w_preds_01$predictions_validation_01
+        })
+    })
+    
+  }
+
+)
+```
 
 
