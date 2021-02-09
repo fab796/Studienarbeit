@@ -11,8 +11,8 @@ library(ROSE)
 library(ranger)
 
 
-training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv",
-#training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
+#training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv",
+training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), VehicleAge = col_number(), 
         WheelTypeID = col_number(), VehOdo = col_number(), 
@@ -378,8 +378,6 @@ summary(filteredData)
 Führe Up- / Downsampling durch
 
 ```{r}
-
-
 filteredData <- filteredData %>%
   mutate(
     IsBadBuy = factor(IsBadBuy),
@@ -404,13 +402,12 @@ filteredData <- filteredData %>%
   )
 
 
-
 table(filteredData$IsBadBuy)
 
 summary(filteredData)
 
 
-filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredDataSelected, method = "under", p = 0.5)$data
+filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "under", p = 0.2)$data
 
 balanced <- table(filteredDataBalanced$IsBadBuy)
 
@@ -429,8 +426,8 @@ modelData <- filteredDataBalanced
 PREPARE TEST DATA
 
 ```{r}
-testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
-#testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
+#testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
+testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), 
         VehicleAge = col_number(), 
@@ -566,7 +563,6 @@ testData <- testData %>%
 
 
 
-
 nrow(testData)
 testData <- testData %>%
   select(-WheelTypeID, -BYRNO, -PRIMEUNIT, -AUCGUART, -VNZIP1)
@@ -617,12 +613,8 @@ res = tuneRanger(tuneData.task,
 rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
                 importance = "permutation", 
                 probability = TRUE, 
-                sample.fraction = 0.4174454, 
                 seed=91, 
-                mtry = 10,
-                min.node.size = 83,
                 splitrule = "gini",
-                scale.permutation.importance = TRUE,
                 num.trees = 1000)
 print(rf_01)
 importance(rf_01)
@@ -632,7 +624,8 @@ Mache Vorhersagen
 
 ```{r}
 
-predictions_validation_01 <- predict(res$model$learner.model, data = data_validation, type = "response")$predictions[,2]
+#predictions_validation_01 <- predict(res$model$learner.model, data = data_validation, type = "response")$predictions[,2]
+predictions_validation_01 <- predict(rf_01, data = data_validation, type = "response")$predictions[,2]
 head(predictions_validation_01)
 predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5, "1" ,"0")
 
@@ -693,12 +686,6 @@ write.csv(submission,"submission.csv", row.names = FALSE)
 ```
 
 
-Lade Model
-```{r}
-
-```
-
-
 
 ```{r, echo=off}
 library(shiny)
@@ -710,48 +697,51 @@ shinyApp(
   ui = fluidPage(
     
     fluidRow(
+      titlePanel("Lemon Prediction"),
       column(8,
-        titlePanel("Lemon Prediction"),
-        textInput("Auction", "Auction:"),
-        textInput("Make", "Make:"),
-        textInput("Model", "Model:"),
-        textInput("SubModel", "SubModel:"),
-        textInput("Color", "Color:"),
-        textInput("Trim", "Trim:"),
-        textInput("WheelType", "WheelType:"),
-        textInput("Nationality", "Nationality:"),
-        textInput("Size", "Size:"),
-        textInput("TopThreeAmericanName", "TopThreeAmericanName:"),
-        textInput("VNST", "VNST:"),
-        dateInput("PurchDate", "PurchDate:"),
-        textInput("Cylinder", "Cylinder:"),
-        textInput("Transmission", "Transmission:"),
-        selectInput("Doors", "Doors:", c("2D", "4D")),
-        selectInput("WheelDrive", "WheelDrive:", c("2WD", "4WD", "FWD", "RWD")),
-        selectInput("IsOnlineSale", "IsOnlineSale:", c(0,1)),
-        numericInput("Liter", "Liter:", value = 0),
-        numericInput("VehOdo", "VehOdo:", value = 0),
-        numericInput("VehCost", "VehCost:", value = 0),
-        numericInput("VehYear", "VehYear:", value = 0),
-        numericInput("VehAge", "VehAge:", value = 0),
-        numericInput("VehBCost", "VehBCost:", value = 0),
-        numericInput("WarrantyCost", "WarrantyCost:", value = 0),
-        
-        actionButton("Berechnen", "Berechnen")
+             h4("Dateneingabe:"),
+             column(6,
+                    selectInput("Auction", "Auction:", choices = c(unique(training$Auction))),
+                textInput("Make", "Make:"),    
+                textInput("Model", "Model:"),
+                textInput("SubModel", "SubModel:"),
+                textInput("Color", "Color:"),
+                textInput("Trim", "Trim:"),
+                textInput("WheelType", "WheelType:"),
+                textInput("Nationality", "Nationality:"),
+                textInput("Size", "Size:"),
+                textInput("TopThreeAmericanName", "TopThreeAmericanName:"),
+                textInput("VNST", "VNST:"),
+                dateInput("PurchDate", "PurchDate:"),
+                textInput("Cylinder", "Cylinder:")),
+            column(6,
+                textInput("Transmission", "Transmission:"),
+                selectInput("Doors", "Doors:", c("2D", "4D")),
+                selectInput("WheelDrive", "WheelDrive:", c("2WD", "4WD", "FWD", "RWD")),
+                selectInput("IsOnlineSale", "IsOnlineSale:", c(0,1)),
+                numericInput("Liter", "Liter:", value = 0),
+                numericInput("VehOdo", "VehOdo:", value = 0),
+                numericInput("VehCost", "VehCost:", value = 0),
+                numericInput("VehYear", "VehYear:", value = 0),
+                numericInput("VehAge", "VehAge:", value = 0),
+                numericInput("VehBCost", "VehBCost:", value = 0),
+                numericInput("WarrantyCost", "WarrantyCost:", value = 0),
+                numericInput("MMRPrice", "AVG MMRPrice:", value = 0),
+                actionButton("Berechnen", "Berechnen")
+              ),
+            
       ),
       column(4,
-             textOutput("sult"),
-             dataTableOutput("result"),
-             textOutput("pred")
+             h4("Vorhersage:"),
+             h4(textOutput("pred"))
              )
     )
     
   ),
 
   server = function(input, output) {
-    output$sult <- renderText({"hallooo"})
+    output$sult <- renderText({"Bitte trage die Daten auf der linken Seite ein und bestätige."})
     myModel <- readRDS("trainedModel.rds")
-    library(ranger)
   
     observeEvent(input$Berechnen, {
       #Lade Eingabe in DataFrame
@@ -781,14 +771,14 @@ shinyApp(
                        WarrantyCost = input$WarrantyCost,
                        
                        
-                       MMRAcquisitionAuctionAveragePrice = 0, 
-                        MMRAcquisitionAuctionCleanPrice = 0, 
-                        MMRAcquisitionRetailAveragePrice = 0, 
-                        MMRAcquisitonRetailCleanPrice = 0, 
-                        MMRCurrentAuctionAveragePrice = 0, 
-                        MMRCurrentAuctionCleanPrice = 0, 
-                        MMRCurrentRetailAveragePrice = 0, 
-                        MMRCurrentRetailCleanPrice = 0 
+                       MMRAcquisitionAuctionAveragePrice = input$MMRPrice, 
+                       MMRAcquisitionAuctionCleanPrice = input$MMRPrice, 
+                       MMRAcquisitionRetailAveragePrice = input$MMRPrice, 
+                       MMRAcquisitonRetailCleanPrice = input$MMRPrice, 
+                       MMRCurrentAuctionAveragePrice = input$MMRPrice, 
+                       MMRCurrentAuctionCleanPrice = input$MMRPrice, 
+                       MMRCurrentRetailAveragePrice = input$MMRPrice, 
+                       MMRCurrentRetailCleanPrice = input$MMRPrice 
                        
                        
                        )
@@ -801,8 +791,8 @@ shinyApp(
         data_validation_w_preds_01 <- cbind(df, predictions_validation_01, predictions_validation_binary_01)
       
       output$pred <- renderText({
-
-          data_validation_w_preds_01$predictions_validation_01
+        paste("Dein Fahrzeug ist zu",
+          data_validation_w_preds_01$predictions_validation_01 * 100, "Prozent ein Fehlkauf..", sep = " ")
         })
     })
     
