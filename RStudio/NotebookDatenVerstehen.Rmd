@@ -58,7 +58,7 @@ Durch diese Filterung fallen 315 Datensätze weg, was im Verhältnis zu dem gro�
 Nun können wir die Spalten umwandeln.
 
 ```{r}
-filteredData$MMRAcquisitionAuctionAveragePrice <- as.numeric(as.character(filteredData$MMRAcquisitionAuctionAveragePrice))
+filteredData$MMRAcquisitionAuctionAveragePrice <- as.integer(as.character(filteredData$MMRAcquisitionAuctionAveragePrice))
 filteredData$MMRAcquisitionAuctionCleanPrice <- as.numeric(as.character(filteredData$MMRAcquisitionAuctionCleanPrice))
 filteredData$MMRAcquisitionRetailAveragePrice <- as.numeric(as.character(filteredData$MMRAcquisitionRetailAveragePrice))
 filteredData$MMRAcquisitonRetailCleanPrice <- as.numeric(as.character(filteredData$MMRAcquisitonRetailCleanPrice))
@@ -206,7 +206,7 @@ Im Folgenden KAPITEL DATA PREPARATION
 Als erstes fallen die ID's heraus
 ```{r}
 filteredData <- filteredData %>%
-  select(-RefId, -WheelTypeID, -BYRNO, -PRIMEUNIT, -AUCGUART, -VNZIP1)
+  select(-RefId, -BYRNO, -PRIMEUNIT, -AUCGUART)
 ```
 Untersuche auf weitere fehlende Werte:
 ```{r}
@@ -248,14 +248,19 @@ Ersetze alle fehlenden Werte mit "UNKNOWN"
 
 ----------------- TODO -------------------- !!!!!!!!!!!!!!!!!
 ```{r}
-filteredData <- filteredData %>%
-  filter(SubModel != "NULL")%>%
-  filter(Color != "NULL")%>%
-  filter(Transmission != "NULL")%>%
-  filter(WheelType != "NULL")%>%
-  filter(Nationality != "NULL")%>%
-  filter(Size != "NULL")%>%
-  filter(TopThreeAmericanName != "NULL")
+
+filteredData$SubModel <- gsub( "NULL", "UNKNOWN", filteredData$SubModel)
+filteredData$Color <- gsub( "NULL", "UNKNOWN", filteredData$Color)
+filteredData$Transmission <- gsub( "NULL", "UNKNOWN", filteredData$Transmission)
+filteredData$WheelType <- gsub( "NULL", "UNKNOWN", filteredData$WheelType)
+filteredData$Nationality <- gsub( "NULL", "UNKNOWN", filteredData$Nationality)
+filteredData$Size <- gsub( "NULL", "UNKNOWN", filteredData$Size)
+filteredData$TopThreeAmericanName <- gsub( "NULL", "UNKNOWN", filteredData$TopThreeAmericanName)
+filteredData$WheelTypeID <- gsub( "NULL", "UNKNOWN", filteredData$WheelTypeID)
+filteredData$Trim <- gsub( "NULL", "UNKNOWN", filteredData$Trim)
+filteredData$VNZIP1 <- gsub( "NULL", "UNKNOWN", filteredData$VNZIP1)
+
+
 ```
 Filter numerische Attribute. Nehme den Durchschnitt des gesamten Attributes und füge ihn dort ein, wo Werte NA sind.
 
@@ -379,10 +384,12 @@ filteredData <- filteredData %>%
     Color = factor(Color),
     Transmission = factor(Transmission),
     WheelType = factor(WheelType),
+    WheelTypeID = factor(WheelTypeID),
     Nationality = factor(Nationality),
     Size = factor(Size),
     TopThreeAmericanName = factor(TopThreeAmericanName),
     VNST = factor(VNST),
+    VNZIP1 = factor(VNZIP1),
     IsOnlineSale = factor(IsOnlineSale),
     WheelDrive = factor(WheelDrive),
     Doors = factor(Doors),
@@ -396,7 +403,7 @@ table(filteredData$IsBadBuy)
 summary(filteredData)
 
 
-filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "under", p = 0.2)$data
+filteredDataBalanced <- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "under", p = 0.5)$data
 
 balanced <- table(filteredDataBalanced$IsBadBuy)
 
@@ -439,11 +446,16 @@ testData$SubModel <- gsub( "NULL", "UNKNOWN", testData$SubModel)
 testData$Color <- gsub( "NULL", "UNKNOWN", testData$Color)
 testData$Transmission <- gsub( "NULL", "UNKNOWN", testData$Transmission)
 testData$WheelType <- gsub( "NULL", "UNKNOWN", testData$WheelType)
+testData$WheelTypeID <- gsub( "NULL", "UNKNOWN", testData$WheelTypeID)
 testData$Nationality <- gsub( "NULL", "UNKNOWN", testData$Nationality)
 testData$Size <- gsub( "NULL", "UNKNOWN", testData$Size)
 testData$Trim <- gsub( "NULL", "UNKNOWN", testData$Trim)
 testData$TopThreeAmericanName <- gsub( "NULL", "UNKNOWN", testData$TopThreeAmericanName)
 testData$Model <- gsub( "NULL", "UNKNOWN", testData$Model)
+testData$VNZIP1 <- gsub( "NULL", "UNKNOWN", testData$VNZIP1)
+
+#Correct WheelTypeId
+testData$WheelTypeID[is.na(testData$WheelTypeID)] <- "UNKNOWN"
 
 testData$Model[is.na(testData$Model)] <- "UNKNOWN"
 testData$SubModel[is.na(testData$SubModel)] <- "UNKNOWN"
@@ -532,20 +544,22 @@ testData <- testData %>%
     Color = factor(Color),
     Transmission = factor(Transmission),
     WheelType = factor(WheelType),
+    WheelTypeID = factor(WheelTypeID),
     Nationality = factor(Nationality),
     Size = factor(Size),
     TopThreeAmericanName = factor(TopThreeAmericanName),
     VNST = factor(VNST),
+    VNZIP1 = factor(VNZIP1),
     IsOnlineSale = factor(IsOnlineSale),
     WheelDrive = factor(WheelDrive),
     Doors = factor(Doors),
     Liter = factor(Liter),
     Cylinder = factor(Cylinder)
   )
-
+summary(testData)
 nrow(testData)
 testData <- testData %>%
-  select(-WheelTypeID, -BYRNO, -PRIMEUNIT, -AUCGUART, -VNZIP1)
+  select(-BYRNO, -PRIMEUNIT, -AUCGUART)
 
 nrow(testData)
 
@@ -564,7 +578,7 @@ data_validation <- slice(modelData, -training_rows)
 MODELLING
 
 
-FÜhre Rander Tuning aus, um passendes Model zu erhalten
+FÜhre Ranger Tuning aus, um passendes Model zu erhalten
 ```{r}
 library(tuneRanger)
 
@@ -598,6 +612,7 @@ importance(rf_01)
 Vorhersagen auf Validation Data
 
 ```{r}
+library(ineq)
 
 #predictions_validation_01 <- predict(res$model$learner.model, data = data_validation, type = "response")$predictions[,2]
 predictions_validation_01 <- predict(rf_01, data = data_validation, type = "response")$predictions[,2]
@@ -611,6 +626,7 @@ rf_01_roc <- roc(data_validation_w_preds_01$IsBadBuy, data_validation_w_preds_01
 plot.roc(rf_01_roc)
 auc(rf_01_roc)
 
+ineq(data_validation_w_preds_01$predictions_validation_binary_01, type = "Gini")
 
 ```
 Analyze Predictions (Accuracy)
@@ -638,11 +654,13 @@ anaData <- anaData %>%
 PREDICT ON TEST DATA
 
 ```{r}
-predictions_validation_01 <- predict(res$model$learner.model, data = testData, type = "response")$predictions[,2]
+predictions_validation_01 <- predict(rf_01, data = testData, type = "response")$predictions[,2]
 head(predictions_validation_01)
 predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
 
 data_validation_w_preds_01 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+
+ineq(data_validation_w_preds_01$predictions_validation_binary_01, type = "Gini")
 ```
 
 Benenne um und entferne unnötige Variablen
