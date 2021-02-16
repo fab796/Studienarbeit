@@ -564,6 +564,172 @@ testData <- testData %>%
 nrow(testData)
 
 ```
+
+
+
+
+
+TESTE WELCHES SAMPLING AM BESTEN IST
+
+```{r}
+library(caret)
+
+sample_under50<- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "under", p = 0.5)$data
+training_rows <- createDataPartition(y=sample_under50$IsBadBuy, p=0.8, list=FALSE)
+data_training_under50 <- slice(sample_under50, training_rows)
+
+sample_under40<- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "under", p = 0.4)$data
+training_rows <- createDataPartition(y=sample_under40$IsBadBuy, p=0.8, list=FALSE)
+data_training_under40 <- slice(sample_under40, training_rows)
+
+sample_both50<- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "both", N =30000, p = 0.5)$data
+training_rows <- createDataPartition(y=sample_both50$IsBadBuy, p=0.8, list=FALSE)
+data_training_both50 <- slice(sample_both50, training_rows)
+
+sample_both30<- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "both", N =30000, p = 0.3)$data
+training_rows <- createDataPartition(y=sample_both30$IsBadBuy, p=0.8, list=FALSE)
+data_training_both30 <- slice(sample_both30, training_rows)
+
+sample_both70<- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "both", N =30000, p = 0.7)$data
+training_rows <- createDataPartition(y=sample_both70$IsBadBuy, p=0.8, list=FALSE)
+data_training_both70 <- slice(sample_both70, training_rows)
+
+sample_under60<- ovun.sample(IsBadBuy ~ ., data = filteredData, method = "under", p = 0.6)$data
+training_rows <- createDataPartition(y=sample_under60$IsBadBuy, p=0.8, list=FALSE)
+data_training_under60 <- slice(sample_under60, training_rows)
+
+
+
+
+library(tuneRanger)
+
+tuneData <- data_training_under50
+tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+res_under50 = tuneRanger(tuneData.task,
+                 measure = list(auc),
+                 tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
+                 num.trees = 800,
+                 )
+
+tuneData <- data_training_under40
+tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+res_under40 = tuneRanger(tuneData.task,
+                 measure = list(auc),
+                 tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
+                 num.trees = 800,
+                 )
+
+tuneData <- data_training_both50
+tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+res_both50 = tuneRanger(tuneData.task,
+                 measure = list(auc),
+                 tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
+                 num.trees = 800,
+                 )
+
+tuneData <- data_training_both30
+tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+res_both30 = tuneRanger(tuneData.task,
+                 measure = list(auc),
+                 tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
+                 num.trees = 800,
+                 )
+
+tuneData <- data_training_both70
+tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+res_both70 = tuneRanger(tuneData.task,
+                 measure = list(auc),
+                 tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
+                 num.trees = 800,
+                 )
+
+tuneData <- data_training_under60
+tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
+res_under60 = tuneRanger(tuneData.task,
+                 measure = list(auc),
+                 tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
+                 num.trees = 800,
+                 )
+
+
+
+#Predict on test data
+
+predictions_validation_01 <- predict(res_under50$model$learner.model, data = testData, type = "response")$predictions[,2]
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
+data_validation_under50 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+
+predictions_validation_01 <- predict(res_under40$model$learner.model, data = testData, type = "response")$predictions[,2]
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
+data_validation_under40 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+
+predictions_validation_01 <- predict(res_both50$model$learner.model, data = testData, type = "response")$predictions[,2]
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
+data_validation_both50 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+
+predictions_validation_01 <- predict(res_both30$model$learner.model, data = testData, type = "response")$predictions[,2]
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
+data_validation_both30 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+
+predictions_validation_01 <- predict(res_both70$model$learner.model, data = testData, type = "response")$predictions[,2]
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
+data_validation_both70 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+
+predictions_validation_01 <- predict(res_under60$model$learner.model, data = testData, type = "response")$predictions[,2]
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
+data_validation_under60 <- cbind(testData, predictions_validation_01, predictions_validation_binary_01)
+
+
+
+
+
+submission <- data_validation_under50 %>%
+  rename(IsBadBuy = predictions_validation_binary_01)%>%
+  select(RefId, IsBadBuy)
+write.csv(submission,"submission_under50.csv", row.names = FALSE)
+
+
+submission <- data_validation_under40 %>%
+  rename(IsBadBuy = predictions_validation_binary_01)%>%
+  select(RefId, IsBadBuy)
+write.csv(submission,"submission_under40.csv", row.names = FALSE)
+
+
+submission <- data_validation_both50 %>%
+  rename(IsBadBuy = predictions_validation_binary_01)%>%
+  select(RefId, IsBadBuy)
+write.csv(submission,"submission_both50.csv", row.names = FALSE)
+
+
+submission <- data_validation_both30 %>%
+  rename(IsBadBuy = predictions_validation_binary_01)%>%
+  select(RefId, IsBadBuy)
+write.csv(submission,"submission_both30.csv", row.names = FALSE)
+
+
+submission <- data_validation_both70 %>%
+  rename(IsBadBuy = predictions_validation_binary_01)%>%
+  select(RefId, IsBadBuy)
+write.csv(submission,"submission_both70.csv", row.names = FALSE)
+
+
+submission <- data_validation_under60 %>%
+  rename(IsBadBuy = predictions_validation_binary_01)%>%
+  select(RefId, IsBadBuy)
+write.csv(submission,"submission_under60.csv", row.names = FALSE)
+
+
+```
+
+
+
+
+
+
+
+
+
+
 Passe die Trainingsdaten an, sodass ein 80 - 20 Split entsteht
 
 ```{r}
