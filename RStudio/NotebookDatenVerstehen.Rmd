@@ -77,10 +77,6 @@ summary(filteredData)
 ```
 Das Attribut "WheelId" beinhaltet noch 3167 NA'S. 
 
-
-
-
-
 Nach der Umwandlung sind die Zahlen nun richtig dargestellt.
 
 Die numerischen Werte werden ausgewählt, um eine Korrelationsmatrix zu erstellen:
@@ -171,8 +167,6 @@ combined <- bind_rows(groupedByOdoHigh, groupedByOdoLow)
 head(combined)
 ggplot(combined, aes(fill = IsBadBuy, y=n, x = split)) + 
   geom_bar(stat="identity")
-
-
 ```
 Der Anteil der Fehlkäufe liegt bei höhrerem Kilometerstand nur leicht über dem der Fahrzeuge mit weniger Laufleistung.
 
@@ -194,15 +188,11 @@ ggplot(groupedByMake, aes(x = Make, y = percentageBadBuy))+
 ```
 Bei kurzen Blick auf die Ergebnisse sind ein paar Ausreißer festzustellen. Dies könnte an zu wenig Datensätzen bei einigen Herstellern liegen.
 
-
-
 ```{r}
 groupedByMake <- filteredData %>%
   select(1,2,7)%>%
   group_by(IsBadBuy, Make)%>%
   count(Make)
-
-
 
 summary(groupedByMake)
 ```
@@ -242,21 +232,21 @@ sum(is.na(filteredData$IsOnlineSale))
 sum(is.na(filteredData$WarrantyCost))
 
 ```
-
-
 Es fällt die Spalte TRIM auf, in der es fehlende Werte gibt. Da es sich hier um ein kategorisches Attribut handelt, kann kein Durchschnittswert eingefügt werden. Deshalb werden die Spalten mit den fehlenden Werten aus dem Datensatz entfernt.
 
 ```{r}
 filteredData <- na.omit(filteredData)
 ```
-In der ursprünglichen Datei gibt es sowhl leere Fehler, als auch Fehler mit dem String "NULL". Diese müssen gefiltert werden.
+In der ursprünglichen Datei gibt es sowohl leere Fehler, als auch Fehler mit dem String "NULL". Diese müssen gefiltert werden.
 Überprüfe in welchen Attributen diese "NULL" Einträge vorhanden sind:
 
 ```{r}
 (grep("NULL", filteredData))
 
 ```
+Ersetze alle fehlenden Werte mit "UNKNOWN"
 
+----------------- TODO -------------------- !!!!!!!!!!!!!!!!!
 ```{r}
 filteredData <- filteredData %>%
   filter(SubModel != "NULL")%>%
@@ -374,8 +364,7 @@ filteredData$WheelDrive[is.na(filteredData$WheelDrive)] <- "UNKNOWN"
 summary(filteredData)
 ```
 
-
-Führe Up- / Downsampling durch
+Wandle alle Kategorischen Attribute in Factors um und führe Downsampling durch
 
 ```{r}
 filteredData <- filteredData %>%
@@ -417,15 +406,12 @@ modelData <- filteredDataBalanced
 
 ```
 
-
-
-
-
-
-
 PREPARE TEST DATA
 
 ```{r}
+
+#Lese Datei ein
+
 #testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
 testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
     col_types = cols(RefId = col_number(), 
@@ -447,7 +433,7 @@ testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/t
         IsOnlineSale = col_number(), 
         WarrantyCost = col_number()))
 
-nrow(testData)
+#Ersetze alle "null" Einträge mit "UNKNOWN"
 
 testData$SubModel <- gsub( "NULL", "UNKNOWN", testData$SubModel)
 testData$Color <- gsub( "NULL", "UNKNOWN", testData$Color)
@@ -464,9 +450,7 @@ testData$SubModel[is.na(testData$SubModel)] <- "UNKNOWN"
 testData$Trim[is.na(testData$Trim)] <- "UNKNOWN"
 testData$Color[is.na(testData$Color)] <- "UNKNOWN"
 
-
-
-nrow(testData)
+#Wandle alle Preise in numeric um
 
 testData$MMRAcquisitionAuctionAveragePrice <- as.numeric(as.character(testData$MMRAcquisitionAuctionAveragePrice))
 testData$MMRAcquisitionAuctionCleanPrice <- as.numeric(as.character(testData$MMRAcquisitionAuctionCleanPrice))
@@ -477,7 +461,7 @@ testData$MMRCurrentAuctionCleanPrice <- as.numeric(as.character(testData$MMRCurr
 testData$MMRCurrentRetailAveragePrice <- as.numeric(as.character(testData$MMRCurrentRetailAveragePrice))
 testData$MMRCurrentRetailCleanPrice <- as.numeric(as.character(testData$MMRCurrentRetailCleanPrice))
 
-
+#Setze alle NA auf 0
 testData$MMRAcquisitionAuctionAveragePrice[is.na(testData$MMRAcquisitionAuctionAveragePrice)] <- 0
 testData$MMRAcquisitionAuctionCleanPrice[is.na(testData$MMRAcquisitionAuctionCleanPrice)] <- 0
 testData$MMRAcquisitionRetailAveragePrice[is.na(testData$MMRAcquisitionRetailAveragePrice)] <- 0
@@ -488,40 +472,41 @@ testData$MMRCurrentRetailAveragePrice[is.na(testData$MMRCurrentRetailAveragePric
 testData$MMRCurrentRetailCleanPrice[is.na(testData$MMRCurrentRetailCleanPrice)] <- 0
 
 
-#PREPARE LIKE TRAINING DATA
-
+#Informationen aus Model und Submodel in eigene Spalten
+#Türen
 testData <- testData %>%
   mutate(Doors = str_extract(SubModel, "[0-9]+D"))
 
 testData$SubModel <- gsub( "[0-9]+D", "", testData$SubModel)
 
+#Cylinder
 testData <- testData %>%
   mutate(Cylinder = str_extract(Model, c("[0-9]+C","V+[0-9]")))
 
 testData$Model <- gsub( "[0-9]+\\C", "", testData$Model)
 testData$Model <- gsub( "V+[0-9]", "", testData$Model)
 
-
-
+#Hubraum
 testData <- testData %>%
   mutate(Liter = str_extract(SubModel, "[0-9]+\\.[0-9]+L"))%>%
   mutate(Liter2 = str_extract(Model, "[0-9]+\\.[0-9]+L"))
 
+#Führe Hubraum zusammen
 testData$Liter <- ifelse(is.na(testData$Liter), testData$Liter2, testData$Liter)
 
 testData <- testData %>%
   select(-Liter2)
 
-
 testData$SubModel <- gsub( "[0-9]+\\.[0-9]+L", "", testData$SubModel)
 testData$Model <- gsub( "[0-9]+\\.[0-9]+L", "", testData$Model)
 
-
+#Antrieb
 testData <- testData %>%
   mutate(WheelDrive = str_extract(Model, "([2-4]|F|A)+WD"))
 
 testData$Model <- gsub( "([2-4]|F)+WD", "", testData$Model)
 
+#Entferne alle überflüssigen Leerzeichen
 testData$Model <- str_squish(testData$Model)
 
 testData$SubModel <- str_squish(testData$SubModel)
@@ -535,7 +520,7 @@ testData$WheelDrive[is.na(testData$WheelDrive)] <- "UNKNOWN"
 
 
 
-
+#Wandle in Faktoren um
 testData <- testData %>%
   mutate(
     Auction = factor(Auction),
@@ -558,15 +543,9 @@ testData <- testData %>%
     Cylinder = factor(Cylinder)
   )
 
-
-
-
-
-
 nrow(testData)
 testData <- testData %>%
   select(-WheelTypeID, -BYRNO, -PRIMEUNIT, -AUCGUART, -VNZIP1)
-
 
 nrow(testData)
 
@@ -585,7 +564,7 @@ data_validation <- slice(modelData, -training_rows)
 MODELLING
 
 
-Make Ranger Tuning Stuff
+FÜhre Rander Tuning aus, um passendes Model zu erhalten
 ```{r}
 library(tuneRanger)
 
@@ -604,11 +583,7 @@ res = tuneRanger(tuneData.task,
                  )
 ```
 
-
-
-
-
-
+Manuelles Model für Vorhersagen
 ```{r}
 rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
                 importance = "permutation", 
@@ -620,7 +595,7 @@ print(rf_01)
 importance(rf_01)
 
 ```
-Mache Vorhersagen
+Vorhersagen auf Validation Data
 
 ```{r}
 
@@ -638,7 +613,7 @@ auc(rf_01_roc)
 
 
 ```
-Analyze Predictions
+Analyze Predictions (Accuracy)
 
 ```{r}
 anaData <- data_validation_w_preds_01 %>%
@@ -686,7 +661,7 @@ write.csv(submission,"submission.csv", row.names = FALSE)
 ```
 
 
-
+Zuletzt erstelle Shiny App für Out-of-the-Box Vorhersage
 ```{r, echo=off}
 library(shiny)
 
