@@ -11,8 +11,8 @@ library(ROSE)
 library(ranger)
 
 
-#training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv",
-training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
+training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv",
+#training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), VehicleAge = col_number(), 
         WheelTypeID = col_number(), VehOdo = col_number(), 
@@ -419,8 +419,8 @@ PREPARE TEST DATA
 
 #Lese Datei ein
 
-#testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
-testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
+testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
+#testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), 
         VehicleAge = col_number(), 
