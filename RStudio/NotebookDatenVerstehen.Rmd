@@ -9,10 +9,10 @@ library(readr)
 library(stringr)
 library(ROSE)
 library(ranger)
+library(pROC)
 
 
-training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv",
-#training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
+training <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/training.csv", 
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), VehicleAge = col_number(), 
         WheelTypeID = col_number(), VehOdo = col_number(), 
@@ -28,7 +28,9 @@ training <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/training.csv",
         VehBCost = col_number(), IsOnlineSale = col_number(), 
         WarrantyCost = col_number()))
 ```
+
 Data Understanding
+
 Dieser Abschnitt dient dazu, die vorhandenen Daten zu verstehen und zu interpretieren.
 Zunächst wird die Summary des Trainingdatensatzes betrachtet:
 
@@ -39,7 +41,6 @@ Danach wird geprüft, ob die angegebenen Datentypen auch zu den Werten der Daten
 ```{r}
 head(training)
 ```
-
 Die Spalten, die den Preis enthalten, sind falsch dargestellt und müssen in "double" umgewandelt werden. Daher wird zuerst geschaut, ob nicht konvertierbare Einträge vorhanden sind:
 ```{r}
 
@@ -55,8 +56,7 @@ filteredData <- training %>%
   
 ```
 Durch diese Filterung fallen 315 Datensätze weg, was im Verhältnis zu dem großen Datensatz kaum Auswirkungen hat.
-Nun können wir die Spalten umwandeln.
-
+Weiter werden die Spalten in Typ double geändert.
 ```{r}
 filteredData$MMRAcquisitionAuctionAveragePrice <- as.integer(as.character(filteredData$MMRAcquisitionAuctionAveragePrice))
 filteredData$MMRAcquisitionAuctionCleanPrice <- as.numeric(as.character(filteredData$MMRAcquisitionAuctionCleanPrice))
@@ -69,18 +69,13 @@ filteredData$MMRCurrentRetailCleanPrice <- as.numeric(as.character(filteredData$
 
 
 ```
-
 Nach Umwandlung erneut Summary aufrufen:
-
 ```{r}
 summary(filteredData)
 ```
 Das Attribut "WheelId" beinhaltet noch 3167 NA'S. 
-
 Nach der Umwandlung sind die Zahlen nun richtig dargestellt.
-
 Die numerischen Werte werden ausgewählt, um eine Korrelationsmatrix zu erstellen:
-
 ```{r}
 matrixData <- filteredData %>%
   select(IsBadBuy, VehYear, VehicleAge, WheelTypeID, VehOdo, MMRAcquisitionAuctionAveragePrice, MMRAcquisitionAuctionCleanPrice, MMRAcquisitionRetailAveragePrice, MMRAcquisitonRetailCleanPrice, MMRCurrentAuctionAveragePrice, MMRCurrentAuctionCleanPrice, MMRCurrentRetailAveragePrice, MMRCurrentRetailCleanPrice, BYRNO, VNZIP1, VehBCost, WarrantyCost)
@@ -93,11 +88,14 @@ cor(matrixData, method ="pearson")
 Beim Betrachten der Summary kommt folgende Vermutung: 
 Datensatz im Hinblick auf das Attribut "IsBadBuy" nicht balanciert. Überprüfe mit Hilfe eines einfachen Plots:
 ```{r}
+#Gruppieren der Daten
 groupedByBad <- filteredData %>%
   select(1,2)
+#Summieren der Lemons
 groupedByBad <- groupedByBad %>%
   count(IsBadBuy)
 
+#Plotten der Daten
 ggplot(data = groupedByBad, mapping=aes(x=IsBadBuy,y=n))+
   geom_bar(stat='identity')
 head(groupedByBad)
@@ -107,28 +105,32 @@ head(groupedByBad)
 Im Weiteren wird die Verteilung des Alters der Fahrzeuge betrachtet:
 
 ```{r}
+#Gruppiere nach Alter
 groupedByAge <- filteredData %>%
   select(1,6)%>%
   count(VehicleAge)
+
+#Plotten der Daten
 ggplot(data = groupedByAge, mapping=aes(x=VehicleAge,y=n))+
   geom_bar(stat='identity')
 ```
 Hierbei handelt es sich um eine nach links verlagerte Gleichverteilung. Interessanter wird hier der Anteil der Fahrzeuge sein, die als Fehlkauf markiert wurden:
 
 ```{r}
+#Gruppiere
 groupedByAgeAndIsBad <- filteredData %>%
   select(1,2,6)%>%
   group_by(IsBadBuy, VehicleAge)%>%
   count(VehicleAge)
 
-
+#Plotten der gruppierten Daten
 ggplot(groupedByAgeAndIsBad, aes(fill=IsBadBuy, y=n, x=VehicleAge)) + 
     geom_bar(position="dodge", stat="identity")
 
 ```
-Um diesen Anstieg der "Kicks" im Alter besser darzustellen, folgt ein Graph, der das Verhältnis darstellt:
-
+Um diesen Anstieg der Lemons im Alter besser darzustellen, folgt ein Graph, der das Verhältnis darstellt:
 ```{r}
+#Gruppiere und berechne Summe aller Fahrzeuge je Alter
 groupedByAgeAndIsBad <- groupedByAgeAndIsBad %>%
   group_by(VehicleAge)%>%
   mutate(n2 = sum(n))%>%
@@ -136,40 +138,44 @@ groupedByAgeAndIsBad <- groupedByAgeAndIsBad %>%
   mutate(percentageBadBuy=round(100*n/n2,2))%>%
   filter(IsBadBuy == 1)
 
+#Plotten der Daten
 ggplot(groupedByAgeAndIsBad, aes(x = VehicleAge, y = percentageBadBuy))+
   geom_line()
-
 ```
 Je älter ein Fahrzeug also ist, umso wahrscheinlicher ist, dass es ein Fehlkauf ist.
-
 Weiter wird untersucht, ob die Laufleistung im Bezug auf das Fahrzeugalter eine ähnliche Entwicklung erfährt:
-
 ```{r}
+#Wähle RefId, IsBadBuy und VehOdo aus
 groupedByOdo <- filteredData %>%
   select(1,2,15)
 
+#Aufrufen der Summary
 summary(groupedByOdo)
 ```
 Teile den Datensatz in zwei Gruppen, um den Anteil der Fehlkäufe bei wenig Laufleistung mit denen höherer Laufleistung vergleichen zu können. Nehme hierfür die Hälfte des Datensatzes.
 
 ```{r}
+#Gruppiere Hälfte mit weniger Laufleistung
 groupedByOdoLow <- groupedByOdo[with(groupedByOdo, order(VehOdo)),][1:36334,] %>%
   group_by(IsBadBuy)%>%
   count(IsBadBuy)%>%
   mutate(split = "LowerOdo")
 
+#Gruppiere Hälfte mit mehr Laufleistung
 groupedByOdoHigh <- groupedByOdo[with(groupedByOdo, order(VehOdo)),][36335:72668,] %>%
   group_by(IsBadBuy)%>%
   count(IsBadBuy)%>%
   mutate(split = "UpperOdo")
 
+#Füge Datensätze zusammen
 combined <- bind_rows(groupedByOdoHigh, groupedByOdoLow)
 head(combined)
+
+#Plotten der Daten
 ggplot(combined, aes(fill = IsBadBuy, y=n, x = split)) + 
   geom_bar(stat="identity")
 ```
 Der Anteil der Fehlkäufe liegt bei höhrerem Kilometerstand nur leicht über dem der Fahrzeuge mit weniger Laufleistung.
-
 Weiter wird der überprüft, ob gewisse Automarken einen höheren Anteil an Fehlkäufen haben als andere.
 
 ```{r}
@@ -419,8 +425,8 @@ PREPARE TEST DATA
 
 #Lese Datei ein
 
-testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
-#testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
+#testData <- read_csv("C:/Users/fvoss/Desktop/Studienarbeit/test.csv", 
+testData <- read_csv("C:/Users/fvoss/Google Drive/Uni_5_Semester/Studienarbeit/test.csv",
     col_types = cols(RefId = col_number(), 
         VehYear = col_number(), 
         VehicleAge = col_number(), 
@@ -743,6 +749,83 @@ data_validation <- slice(modelData, -training_rows)
 
 MODELLING
 
+Decision Tree 
+```{r}
+library(rpart)
+library(rpart.plot)
+
+
+#Normal Decision Tree
+fit_01 <- rpart(IsBadBuy~ ., data = data_training, method = "class")
+predictions_val_01 <- predict(fit_01, newdata = data_validation)[,2]
+predictions_val_binary_01 <- ifelse(predictions_val_01>0.5, "1", "0")
+data_val_w_preds_01 <- cbind(data_validation, predictions_val_01, predictions_val_binary_01)
+fit_01_roc <- roc(data_val_w_preds_01$IsBadBuy, data_val_w_preds_01$predictions_val_01)
+plot.roc(fit_01_roc)
+auc(fit_01_roc)
+
+
+```
+
+Führe Random Forest aus mit 50 Bäumen
+```{r}
+rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
+                importance = "permutation", 
+                probability = TRUE, 
+                seed=42,
+                splitrule = "gini",
+                num.trees = 50)
+
+predictions_validation_01 <- predict(rf_01, data = data_validation, type = "response")$predictions[,2]
+head(predictions_validation_01)
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5, "1" ,"0")
+
+data_validation_w_preds_01 <- cbind(data_validation, predictions_validation_01, predictions_validation_binary_01)
+rf_01_roc <- roc(data_validation_w_preds_01$IsBadBuy, data_validation_w_preds_01$predictions_validation_01)
+plot.roc(rf_01_roc)
+auc(rf_01_roc)
+```
+
+Führe Random Forest aus mit 100 Bäumen
+```{r}
+rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
+                importance = "permutation", 
+                probability = TRUE, 
+                seed=42,
+                splitrule = "gini",
+                num.trees = 1280)
+
+predictions_validation_01 <- predict(rf_01, data = data_validation, type = "response")$predictions[,2]
+head(predictions_validation_01)
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5, "1" ,"0")
+
+data_validation_w_preds_01 <- cbind(data_validation, predictions_validation_01, predictions_validation_binary_01)
+rf_01_roc <- roc(data_validation_w_preds_01$IsBadBuy, data_validation_w_preds_01$predictions_validation_01)
+plot.roc(rf_01_roc)
+auc(rf_01_roc)
+```
+
+Führe Random Forest aus mit 150 Bäumen
+```{r}
+rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
+                importance = "permutation", 
+                probability = TRUE, 
+                seed=42,
+                splitrule = "gini",
+                num.trees = 150)
+
+predictions_validation_01 <- predict(rf_01, data = data_validation, type = "response")$predictions[,2]
+head(predictions_validation_01)
+predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5, "1" ,"0")
+
+data_validation_w_preds_01 <- cbind(data_validation, predictions_validation_01, predictions_validation_binary_01)
+rf_01_roc <- roc(data_validation_w_preds_01$IsBadBuy, data_validation_w_preds_01$predictions_validation_01)
+plot.roc(rf_01_roc)
+auc(rf_01_roc)
+```
+
+
+
 
 FÜhre Ranger Tuning aus, um passendes Model zu erhalten
 ```{r}
@@ -753,13 +836,13 @@ tuneData <- data_training
 tuneData.task = makeClassifTask(data = tuneData, target = "IsBadBuy")
 
 
-estimateTimeTuneRanger(tuneData.task)
+#estimateTimeTuneRanger(tuneData.task)
 
 res = tuneRanger(tuneData.task,
                  measure = list(auc),
                  tune.parameters = c("mtry", "min.node.size", "sample.fraction"),
                  num.trees = 1500,
-                 iters = 120
+                 iters = 80
                  )
 ```
 
@@ -768,11 +851,14 @@ Manuelles Model für Vorhersagen
 rf_01 <- ranger(IsBadBuy ~ ., data = data_training, 
                 importance = "permutation", 
                 probability = TRUE, 
-                seed=91, 
+                seed= 42, 
+                mtry = res$recommended.pars$mtry,
+                min.node.size = res$recommended.pars$min.node.size,
+                sample.fraction = res$recommended.pars$sample.fraction,
                 splitrule = "gini",
-                num.trees = 1000)
-print(rf_01)
-importance(rf_01)
+                num.trees = 5000)
+#print(rf_01)
+#importance(rf_01)
 
 ```
 Vorhersagen auf Validation Data
@@ -787,13 +873,15 @@ predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5, "1" ,"
 
 data_validation_w_preds_01 <- cbind(data_validation, predictions_validation_01, predictions_validation_binary_01)
 #1-ce(actual = data_validation_w_preds_01$IsBadBuy, predicted = data_validation_w_preds_01$predictions_validation_binary_01)
-library(pROC)
+
 rf_01_roc <- roc(data_validation_w_preds_01$IsBadBuy, data_validation_w_preds_01$predictions_validation_01)
 plot.roc(rf_01_roc)
 auc(rf_01_roc)
 
-ineq(data_validation_w_preds_01$predictions_validation_binary_01, type = "Gini")
-
+neq(data_validation_w_preds_01$predictions_validation_binary_01, type = "Gini")
+library(gmodels)
+CrossTable(data_val_w_preds_01$IsBadBuy, data_val_w_preds_01$predictions_val_binary_01, 
+           prop.r=FALSE, prop.c=FALSE, prop.t=TRUE, prop.chisq=FALSE)
 ```
 Analyze Predictions (Accuracy)
 
@@ -813,6 +901,8 @@ anaData <- anaData %>%
   count(IsBadBuy)
 
 
+CrossTable(data_val_w_preds_01$Decision, data_val_w_preds_01$predictions_val_binary_01, 
+           prop.r=FALSE, prop.c=FALSE, prop.t=TRUE, prop.chisq=FALSE)
 ```
 
 
@@ -833,7 +923,7 @@ Benenne um und entferne unnötige Variablen
 
 ```{r}
 submission <- data_validation_w_preds_01 %>%
-  rename(IsBadBuy = predictions_validation_binary_01)%>%
+  rename(IsBadBuy = predictions_validation_01)%>%
   select(RefId, IsBadBuy)
 nrow(submission)
 
@@ -860,34 +950,36 @@ shinyApp(
       column(8,
              h4("Dateneingabe:"),
              column(6,
-                    selectInput("Auction", "Auction:", choices = c(unique(training$Auction))),
-                textInput("Make", "Make:"),    
-                textInput("Model", "Model:"),
-                textInput("SubModel", "SubModel:"),
-                textInput("Color", "Color:"),
-                textInput("Trim", "Trim:"),
-                textInput("WheelType", "WheelType:"),
-                textInput("Nationality", "Nationality:"),
-                textInput("Size", "Size:"),
-                textInput("TopThreeAmericanName", "TopThreeAmericanName:"),
-                textInput("VNST", "VNST:"),
+                    selectInput("Auction", "Auction:", choices = sort(c(unique(training$Auction)))),
+                selectInput("Make", "Make:", sort(unique(filteredData$Make))),
+                selectInput("Model", "Model:", sort(unique(filteredData$Model))),
+                selectInput("SubModel", "SubModel:", sort(unique(filteredData$SubModel))),
+                selectInput("Color", "Color:", sort(unique(filteredData$Color))),
+                selectInput("Trim", "Trim:", sort(unique(filteredData$Trim))),
+                selectInput("WheelType", "WheelType:", sort(unique(filteredData$WheelType))),
+                selectInput("Nationality", "Nationality:", sort(unique(filteredData$Nationality))),
+                selectInput("Size", "Size:", sort(unique(filteredData$Size))),
+                selectInput("TopThreeAmericanName", "TopThreeAmericanName:", sort(unique(filteredData$TopThreeAmericanName))),
+                selectInput("VNST", "VNST:", sort(unique(filteredData$VNST))),
                 dateInput("PurchDate", "PurchDate:"),
-                textInput("Cylinder", "Cylinder:")),
+                selectInput("Cylinder", "Cylinder:", sort(unique(filteredData$Cylinder))),
+             ),
             column(6,
-                textInput("Transmission", "Transmission:"),
+                selectInput("Transmission", "Transmission:", unique(filteredData$Transmission)),
+                
                 selectInput("Doors", "Doors:", c("2D", "4D")),
                 selectInput("WheelDrive", "WheelDrive:", c("2WD", "4WD", "FWD", "RWD")),
                 selectInput("IsOnlineSale", "IsOnlineSale:", c(0,1)),
                 numericInput("Liter", "Liter:", value = 0),
                 numericInput("VehOdo", "VehOdo:", value = 0),
                 numericInput("VehCost", "VehCost:", value = 0),
-                numericInput("VehYear", "VehYear:", value = 0),
+                numericInput("VehYear", "VehYear:", value = 2009),
                 numericInput("VehAge", "VehAge:", value = 0),
                 numericInput("VehBCost", "VehBCost:", value = 0),
                 numericInput("WarrantyCost", "WarrantyCost:", value = 0),
                 numericInput("MMRPrice", "AVG MMRPrice:", value = 0),
-                actionButton("Berechnen", "Berechnen")
-              ),
+                actionButton("Berechnen", "Berechnen"),
+             ),
             
       ),
       column(4,
@@ -900,7 +992,7 @@ shinyApp(
 
   server = function(input, output) {
     output$sult <- renderText({"Bitte trage die Daten auf der linken Seite ein und bestätige."})
-    myModel <- readRDS("trainedModel.rds")
+    myModel <- readRDS("trainedModelBetter.rds")
   
     observeEvent(input$Berechnen, {
       #Lade Eingabe in DataFrame
@@ -946,12 +1038,11 @@ shinyApp(
       
               
         predictions_validation_01 <- predict(myModel, data = df, type = "response")$predictions[,2]
-        predictions_validation_binary_01 <- ifelse(predictions_validation_01>0.5,"1","0")
-        data_validation_w_preds_01 <- cbind(df, predictions_validation_01, predictions_validation_binary_01)
+        data_validation_w_preds_01 <- cbind(df, predictions_validation_01)
       
       output$pred <- renderText({
-        paste("Dein Fahrzeug ist zu",
-          data_validation_w_preds_01$predictions_validation_01 * 100, "Prozent ein Fehlkauf..", sep = " ")
+        paste("Das Fahrzeug ist zu",
+          round((data_validation_w_preds_01$predictions_validation_01 * 100),0), "Prozent ein Fehlkauf.", sep = " ")
         })
     })
     
